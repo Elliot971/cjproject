@@ -70,36 +70,6 @@ cjpm build
 cjpm test --parallel 1
 ```
 
-### 运行示例
-
-先构建库，然后编译并运行示例：
-
-```bash
-# 编译计数器示例
-cjc examples/counter.cj \
-  --import-path target/release/cjrxtui \
-  -L target/release/cjrxtui \
-  -l cjrxtui -l cjrxtui.app -l cjrxtui.component \
-  -l cjrxtui.node -l cjrxtui.style -l cjrxtui.layout \
-  -l cjrxtui.render -l cjrxtui.buffer -l cjrxtui.terminal \
-  -l cjrxtui.builtin \
-  -o target/release/bin/counter_example
-
-# 运行
-./target/release/bin/counter_example
-```
-
-提供的示例：
-
-| 示例 | 说明 |
-|------|------|
-| `counter.cj` | 入门：最简交互计数器 |
-| `builtin_list.cj` | 单组件：List 可选列表 |
-| `builtin_scrollable.cj` | 单组件：Scrollable 滚动区域 |
-| `builtin_text_input.cj` | 单组件：TextInput 文本输入 |
-| `form_demo.cj` | 进阶：表单交互（多 TextInput + Button） |
-| `demo.cj` | 旗舰：全部 12 个组件综合演示 |
-
 ## 最小示例
 
 ```cangjie
@@ -149,7 +119,7 @@ main() {
 - 分支策略：`main` 保持可用，功能开发建议从 `feat/<name>` 或 `fix/<name>` 分支发起
 - 提交规范：建议使用 `feat:`、`fix:`、`docs:`、`test:`、`refactor:`、`chore:` 前缀
 - 提交粒度：一次提交只做一类变更，避免把功能、重构、格式化混在一起
-- 发布策略：当 API 或示例达到稳定状态后，打对应标签，例如 `v0.1.0`
+- 发布策略：当公共 API 达到稳定状态后，打对应标签，例如 `v0.1.0`
 - Issue 协作：缺陷和新需求建议通过 GitHub Issues 提交，便于跟踪和归档
 
 ## 核心 API
