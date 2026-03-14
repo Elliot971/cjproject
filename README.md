@@ -44,7 +44,7 @@
 
 ```toml
 [dependencies]
-  cjrxtui = { git = "https://your-repo-url/cjrxtui.git", tag = "v0.1.0" }
+  cjrxtui = { git = "https://github.com/Elliot971/cjproject.git", tag = "v0.1.0" }
 ```
 
 然后在代码中直接 `import cjrxtui.*` 即可使用所有公共 API。
@@ -143,6 +143,14 @@ main() {
     App.runInteractive(MyComponent(), MyState(), 20, 5)
 }
 ```
+
+## 协作与提交建议
+
+- 分支策略：`main` 保持可用，功能开发建议从 `feat/<name>` 或 `fix/<name>` 分支发起
+- 提交规范：建议使用 `feat:`、`fix:`、`docs:`、`test:`、`refactor:`、`chore:` 前缀
+- 提交粒度：一次提交只做一类变更，避免把功能、重构、格式化混在一起
+- 发布策略：当 API 或示例达到稳定状态后，打对应标签，例如 `v0.1.0`
+- Issue 协作：缺陷和新需求建议通过 GitHub Issues 提交，便于跟踪和归档
 
 ## 核心 API
 

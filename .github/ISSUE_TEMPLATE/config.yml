@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Repository README
+    url: https://github.com/Elliot971/cjproject
+    about: Read installation and usage guidance before opening an issue.
