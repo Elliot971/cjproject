@@ -345,4 +345,28 @@ public struct Style {
     public func withAlignSelf(nextAlignSelf: AlignSelf): Style {
         Style(background, direction, padding, margin, width, height, gap, overflow, border, position, top, right, bottom, left, zIndex, alignItems, justifyContent, nextAlignSelf)
     }
+
+    public func withPosition(nextPosition: Position): Style {
+        Style(background, direction, padding, margin, width, height, gap, overflow, border, nextPosition, top, right, bottom, left, zIndex, alignItems, justifyContent, alignSelf)
+    }
+
+    public func withZIndex(nextZIndex: Int64): Style {
+        Style(background, direction, padding, margin, width, height, gap, overflow, border, position, top, right, bottom, left, nextZIndex, alignItems, justifyContent, alignSelf)
+    }
+
+    public func withTop(nextTop: Int64): Style {
+        Style(background, direction, padding, margin, width, height, gap, overflow, border, position, nextTop, right, bottom, left, zIndex, alignItems, justifyContent, alignSelf)
+    }
+
+    public func withRight(nextRight: Int64): Style {
+        Style(background, direction, padding, margin, width, height, gap, overflow, border, position, top, nextRight, bottom, left, zIndex, alignItems, justifyContent, alignSelf)
+    }
+
+    public func withBottom(nextBottom: Int64): Style {
+        Style(background, direction, padding, margin, width, height, gap, overflow, border, position, top, right, nextBottom, left, zIndex, alignItems, justifyContent, alignSelf)
+    }
+
+    public func withLeft(nextLeft: Int64): Style {
+        Style(background, direction, padding, margin, width, height, gap, overflow, border, position, top, right, bottom, nextLeft, zIndex, alignItems, justifyContent, alignSelf)
+    }
 }

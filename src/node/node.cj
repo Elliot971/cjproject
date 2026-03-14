@@ -183,4 +183,30 @@ public enum Node {
     public static func richText(richText: RichText): Node {
         Node.RichTextNode(richText)
     }
+
+    public static func when(condition: Bool, node: Node): Node {
+        if (condition) { node } else { Node.Empty }
+    }
+
+    public static func list(nodes: Array<Node>): Node {
+        let container = Div()
+        container.children(nodes)
+        Node.DivNode(container)
+    }
+
+    public static func hstack(nodes: Array<Node>): Node {
+        let container = Div().direction(Direction.Horizontal)
+        container.children(nodes)
+        Node.DivNode(container)
+    }
+
+    public static func vstack(nodes: Array<Node>): Node {
+        let container = Div().direction(Direction.Vertical)
+        container.children(nodes)
+        Node.DivNode(container)
+    }
+
+    public static func spacer(width: Int64, height: Int64): Node {
+        Node.DivNode(Div().width(Dimension.Fixed(width)).height(Dimension.Fixed(height)))
+    }
 }

@@ -1,7 +1,7 @@
 package cjrxtui
 
 public import cjrxtui.app.{App, AppRunner, AppRuntime, AppSession, ArrayRuntimeEventSource, FrameSink, InteractiveRunnerFactory, InteractiveRuntimeEventSource, MemoryFrameSink, ParsedInputLine, ParsedRawInput, RawRuntimeEventParser, RawStdinRuntimeEventSource, RawStringRuntimeEventSource, RuntimeConfig, RuntimeEvent, RuntimeEventSource, RuntimeSnapshot, RuntimeStepResult, StdinRuntimeEventSource, StdoutFrameSink, forceFlushEsc, normalizeKeyName, normalizeRuntimeEvent, parseInputLine, parseRawInput}
-public import cjrxtui.builtin.{Button, ButtonState, BuiltinEvent, Checkbox, CheckboxState, Form, FormState, Label, LabelState, List, ListState, Modal, ModalState, ProgressBar, ProgressBarState, Radio, RadioState, Scrollable, ScrollableState, Spinner, SpinnerState, Tabs, TabsState, TextInput, TextInputState}
+public import cjrxtui.builtin.{Button, ButtonState, BuiltinEvent, Checkbox, CheckboxState, Divider, DividerDirection, DividerState, Form, FormState, Label, LabelState, List, ListState, Modal, ModalState, ProgressBar, ProgressBarState, Radio, RadioState, Scrollable, ScrollableState, Select, SelectState, Spinner, SpinnerState, StatusBar, StatusBarState, Tabs, TabsState, Table, TableState, TextArea, TextAreaState, TextInput, TextInputState}
 public import cjrxtui.buffer.{Cell, CellStyle, CellUpdate, DoubleBuffer, ScreenBuffer}
 public import cjrxtui.component.{Action, Component, ComponentId, Context, Effect, EffectDispatcher, EffectSink, Effects, KeyCode, KeyEvent, KeyModifiers, Message, MouseButton, MouseEvent, MouseEventKind, ResizeEvent, State, TopicEnvelope, UiEvent}
 public import cjrxtui.layout.{LayoutBox, LayoutEngine, LayoutKind, Rect, Size}

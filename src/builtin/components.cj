@@ -13,6 +13,9 @@ public enum BuiltinEvent <: Message {
     | RadioChanged(String, Int64, String)
     | TabChanged(String, Int64, String)
     | ModalDismissed(String)
+    | TableRowSelected(String, Int64)
+    | TextAreaSubmitted(String, String)
+    | SelectChanged(String, Int64, String)
 }
 
 public class CheckboxState <: State {

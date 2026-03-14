@@ -109,6 +109,9 @@ func listEnterSendsSelectionEvent() {
             case BuiltinEvent.RadioChanged(_, _, _) => @Fail("expected list selection event")
             case BuiltinEvent.TabChanged(_, _, _) => @Fail("expected list selection event")
             case BuiltinEvent.ModalDismissed(_) => @Fail("expected list selection event")
+            case BuiltinEvent.TableRowSelected(_, _) => @Fail("expected list selection event")
+            case BuiltinEvent.TextAreaSubmitted(_, _) => @Fail("expected list selection event")
+            case BuiltinEvent.SelectChanged(_, _, _) => @Fail("expected list selection event")
         }
     } else {
         @Fail("expected builtin event")
@@ -219,6 +222,9 @@ func textInputEnterSendsSubmitEvent() {
             case BuiltinEvent.RadioChanged(_, _, _) => @Fail("expected submitted event")
             case BuiltinEvent.TabChanged(_, _, _) => @Fail("expected submitted event")
             case BuiltinEvent.ModalDismissed(_) => @Fail("expected submitted event")
+            case BuiltinEvent.TableRowSelected(_, _) => @Fail("expected submitted event")
+            case BuiltinEvent.TextAreaSubmitted(_, _) => @Fail("expected submitted event")
+            case BuiltinEvent.SelectChanged(_, _, _) => @Fail("expected submitted event")
         }
     } else {
         @Fail("expected submitted event")
