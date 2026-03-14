@@ -1,0 +1,8 @@
+[package]
+  cjc-version = "1.0.5"
+  name = "cjrxtui"
+  description = "A declarative terminal UI framework for Cangjie"
+  version = "0.1.0"
+  output-type = "static"
+
+[dependencies]
