@@ -3,6 +3,7 @@ package cjrxtui.app
 import std.collection.ArrayList
 import std.collection.concurrent.LinkedBlockingQueue
 import std.env.*
+import std.fs.*
 import std.sync.{AtomicBool, AtomicInt64}
 import cjrxtui.terminal.{NoopTerminalModeController, NoopTerminalSizeReader, SttyTerminalModeController, TerminalInputMode, TerminalModeController, TerminalSize, TerminalSizeReader}
 
@@ -220,15 +221,24 @@ public class RawStdinRuntimeEventSource <: PollingRuntimeEventSource {
 
         let charQueue = LinkedBlockingQueue<?Rune>()
 
-        // Reader thread: reads raw bytes from stdin into charQueue
+        // Reader thread: reads raw bytes from /dev/tty into charQueue.
+        // We bypass ConsoleReader (getStdIn().read()) because its internal
+        // line-buffering blocks indefinitely in terminal raw mode.
         spawn {
-            while (true) {
-                match (getStdIn().read()) {
-                    case Some(ch) => charQueue.add(ch)
-                    case None =>
+            try {
+                let tty = File("/dev/tty", OpenMode.Read)
+                let buf = Array<Byte>(1, repeat: 0)
+                while (true) {
+                    let n = tty.read(buf)
+                    if (n <= 0) {
                         charQueue.add(None)
                         return
+                    }
+                    let ch = Rune(UInt32(buf[0]))
+                    charQueue.add(ch)
                 }
+            } catch (_: Exception) {
+                charQueue.add(None)
             }
         }
 
