@@ -1,7 +1,7 @@
 package cjrxtui.builtin
 
 import std.convert.*
-import cjrxtui.component.{Action, Component, Context, KeyCode, Message, MouseEventKind, State, UiEvent}
+import cjrxtui.component.{Action, Component, Context, KeyCode, KeyEvent, KeyModifiers, Message, MouseEventKind, State, UiEvent}
 import cjrxtui.node.{Div, Node}
 import cjrxtui.style.{Border, BorderStyle, Color, Dimension, Direction, SpinnerType, Style, TextStyle}
 
@@ -21,45 +21,54 @@ public enum BuiltinEvent <: Message {
 public class CheckboxState <: State {
     public var checked: Bool
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         checked = false
         focused = false
+        hovered = false
     }
 
     public init(checked: Bool, focused: Bool) {
         this.checked = checked
         this.focused = focused
+        this.hovered = false
     }
 }
 
 public class RadioState <: State {
     public var selectedIndex: Int64
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         selectedIndex = 0
         focused = false
+        hovered = false
     }
 
     public init(selectedIndex: Int64, focused: Bool) {
         this.selectedIndex = selectedIndex
         this.focused = focused
+        this.hovered = false
     }
 }
 
 public class TabsState <: State {
     public var selectedIndex: Int64
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         selectedIndex = 0
         focused = false
+        hovered = false
     }
 
     public init(selectedIndex: Int64, focused: Bool) {
         this.selectedIndex = selectedIndex
         this.focused = focused
+        this.hovered = false
     }
 }
 
@@ -78,30 +87,36 @@ public class SpinnerState <: State {
 public class ModalState <: State {
     public var open: Bool
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         open = true
         focused = false
+        hovered = false
     }
 
     public init(open: Bool, focused: Bool) {
         this.open = open
         this.focused = focused
+        this.hovered = false
     }
 }
 
 public class ButtonState <: State {
     public var focused: Bool
     public var pressed: Bool
+    public var hovered: Bool
 
     public init() {
         focused = false
         pressed = false
+        hovered = false
     }
 
     public init(focused: Bool, pressed: Bool) {
         this.focused = focused
         this.pressed = pressed
+        this.hovered = false
     }
 }
 
@@ -136,15 +151,18 @@ public class FormState <: State {
 public class ScrollableState <: State {
     public var offset: Int64
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         offset = 0
         focused = false
+        hovered = false
     }
 
     public init(offset: Int64, focused: Bool) {
         this.offset = offset
         this.focused = focused
+        this.hovered = false
     }
 }
 
@@ -185,10 +203,10 @@ public class Scrollable <: Component {
             .focusable()
             .width(Dimension.Fixed(width))
             .height(Dimension.Fixed(height))
-            .style(scrollableContainerStyle(scrollState.focused))
+            .style(scrollableContainerStyle(scrollState.focused, hovered: scrollState.hovered))
 
         for (line in visibleScrollableLines(lines, scrollState.offset, height)) {
-            container.child(Node.text(line, scrollableTextStyle(scrollState.focused)))
+            container.child(Node.text(line, scrollableTextStyle(scrollState.focused, hovered: scrollState.hovered)))
         }
 
         Node.div(container)
@@ -199,17 +217,20 @@ public class ListState <: State {
     public var selectedIndex: Int64
     public var scrollOffset: Int64
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         selectedIndex = 0
         scrollOffset = 0
         focused = false
+        hovered = false
     }
 
     public init(selectedIndex: Int64, scrollOffset: Int64, focused: Bool) {
         this.selectedIndex = selectedIndex
         this.scrollOffset = scrollOffset
         this.focused = focused
+        this.hovered = false
     }
 }
 
@@ -249,7 +270,7 @@ public class List <: Component {
             .focusable()
             .width(Dimension.Fixed(width))
             .height(Dimension.Fixed(height))
-            .style(listContainerStyle(listState.focused))
+            .style(listContainerStyle(listState.focused, hovered: listState.hovered))
 
         let visibleItems = visibleListItems(items, listState, height)
         for ((index, line) in visibleItems) {
@@ -274,12 +295,14 @@ public class TextInputState <: State {
     public var cursor: Int64
     public var focused: Bool
     public var viewOffset: Int64
+    public var hovered: Bool
 
     public init() {
         value = ""
         cursor = 0
         focused = false
         viewOffset = 0
+        hovered = false
     }
 
     public init(value: String, cursor: Int64, focused: Bool, viewOffset: Int64) {
@@ -287,6 +310,7 @@ public class TextInputState <: State {
         this.cursor = cursor
         this.focused = focused
         this.viewOffset = viewOffset
+        this.hovered = false
     }
 }
 
@@ -333,7 +357,7 @@ public class TextInput <: Component {
                 .id(id)
                 .width(Dimension.Fixed(width))
                 .height(Dimension.Fixed(1))
-                .style(textInputContainerStyle(inputState.focused))
+                .style(textInputContainerStyle(inputState.focused, hovered: inputState.hovered))
                 .child(Node.div(row))
         )
     }
@@ -390,8 +414,8 @@ public class Button <: Component {
                 .focusable()
                 .width(Dimension.Fixed(width))
                 .height(Dimension.Fixed(1))
-                .style(buttonContainerStyle(buttonState.focused, buttonState.pressed))
-                .child(Node.text(renderButtonLabel(label, width, buttonState.focused, buttonState.pressed), buttonTextStyle(buttonState.focused, buttonState.pressed)))
+                .style(buttonContainerStyle(buttonState.focused, buttonState.pressed, hovered: buttonState.hovered))
+                .child(Node.text(renderButtonLabel(label, width, buttonState.focused, buttonState.pressed), buttonTextStyle(buttonState.focused, buttonState.pressed, hovered: buttonState.hovered)))
         )
     }
 }
@@ -509,8 +533,8 @@ public class Checkbox <: Component {
                 .focusable()
                 .width(Dimension.Fixed(width))
                 .height(Dimension.Fixed(1))
-                .style(checkboxContainerStyle(checkboxState.focused, checkboxState.checked))
-                .child(Node.text(renderCheckboxLabel(label, width, checkboxState.checked), checkboxTextStyle(checkboxState.focused, checkboxState.checked)))
+                .style(checkboxContainerStyle(checkboxState.focused, checkboxState.checked, hovered: checkboxState.hovered))
+                .child(Node.text(renderCheckboxLabel(label, width, checkboxState.checked), checkboxTextStyle(checkboxState.focused, checkboxState.checked, hovered: checkboxState.hovered)))
         )
     }
 }
@@ -541,7 +565,7 @@ public class Radio <: Component {
             .id(id)
             .focusable()
             .width(Dimension.Fixed(width))
-            .style(radioContainerStyle(radioState.focused))
+            .style(radioContainerStyle(radioState.focused, hovered: radioState.hovered))
 
         for ((index, option) in indexedOptions(options)) {
             container.child(Node.text(renderRadioOption(option, index == radioState.selectedIndex), radioTextStyle(index == radioState.selectedIndex, radioState.focused)))
@@ -578,8 +602,8 @@ public class Tabs <: Component {
                 .focusable()
                 .width(Dimension.Fixed(width))
                 .height(Dimension.Fixed(1))
-                .style(tabsContainerStyle(tabsState.focused))
-                .child(Node.text(renderTabs(labels, tabsState.selectedIndex), tabsTextStyle(tabsState.focused)))
+                .style(tabsContainerStyle(tabsState.focused, hovered: tabsState.hovered))
+                .child(Node.text(renderTabs(labels, tabsState.selectedIndex), tabsTextStyle(tabsState.focused, hovered: tabsState.hovered)))
         )
     }
 }
@@ -665,7 +689,7 @@ public class Modal <: Component {
             .focusable()
             .width(Dimension.Fixed(width))
             .height(Dimension.Fixed(height))
-            .style(modalContainerStyle(modalState.focused))
+            .style(modalContainerStyle(modalState.focused, hovered: modalState.hovered))
             .child(Node.text(padOrTrim(" ${title} ", width), modalTitleStyle()))
 
         for (line in bodyLines) {
@@ -686,6 +710,8 @@ private func applyScrollableEvent(
     match (event) {
         case UiEvent.Focus(nodeId) => if (nodeId == id) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (nodeId == id) { state.focused = false }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyScrollKey(state, keyEvent.code, maxOffset, pageSize) }
         case UiEvent.Mouse(mouseEvent) => if (state.focused) { applyScrollMouse(state, mouseEvent.kind, maxOffset) }
         case _ => ()
@@ -717,6 +743,8 @@ private func applyListEvent(ctx: Context, state: ListState, event: UiEvent, id: 
     match (event) {
         case UiEvent.Focus(nodeId) => if (isListNodeId(id, nodeId)) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (isListNodeId(id, nodeId)) { state.focused = false }
+        case UiEvent.HoverEnter(nodeId) => if (isListNodeId(id, nodeId)) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (isListNodeId(id, nodeId)) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyListKey(ctx, state, keyEvent.code, id, items, height) }
         case UiEvent.Mouse(mouseEvent) => if (state.focused) { applyListMouse(state, mouseEvent.kind, itemCount, height) }
         case UiEvent.Click(nodeId, _) => applyListClick(ctx, state, id, nodeId, items, height)
@@ -777,7 +805,9 @@ private func applyTextInputEvent(ctx: Context, state: TextInputState, event: UiE
     match (event) {
         case UiEvent.Focus(nodeId) => if (isTextInputNodeId(id, nodeId)) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (isTextInputNodeId(id, nodeId)) { state.focused = false }
-        case UiEvent.Key(keyEvent) => if (state.focused) { applyTextInputKey(ctx, state, keyEvent.code, id) }
+        case UiEvent.HoverEnter(nodeId) => if (isTextInputNodeId(id, nodeId)) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (isTextInputNodeId(id, nodeId)) { state.hovered = false }
+        case UiEvent.Key(keyEvent) => if (state.focused) { applyTextInputKey(ctx, state, keyEvent, id) }
         case UiEvent.Click(nodeId, _) => applyTextInputClick(state, id, nodeId)
         case _ => ()
     }
@@ -792,7 +822,34 @@ private func applyTextInputClick(state: TextInputState, id: String, nodeId: Stri
     }
 }
 
-private func applyTextInputKey(ctx: Context, state: TextInputState, code: KeyCode, id: String): Unit {
+private func applyTextInputKey(ctx: Context, state: TextInputState, keyEvent: KeyEvent, id: String): Unit {
+    let code = keyEvent.code
+    let mods = keyEvent.modifiers
+
+    // Ctrl+letter shortcuts
+    if (mods.ctrl) {
+        match (code) {
+            case KeyCode.Char(ch) =>
+                if (ch == r'w') { deleteWordBackward(state); return }
+                if (ch == r'u') { deleteToLineStart(state); return }
+                if (ch == r'k') { deleteToLineEnd(state); return }
+                if (ch == r'a') { state.cursor = 0; return }
+                if (ch == r'e') { state.cursor = runeCount(state.value); return }
+            case _ => ()
+        }
+    }
+
+    // Alt+letter shortcuts
+    if (mods.alt) {
+        match (code) {
+            case KeyCode.Char(ch) =>
+                if (ch == r'b') { state.cursor = findWordBoundaryLeft(state.value, state.cursor); return }
+                if (ch == r'f') { state.cursor = findWordBoundaryRight(state.value, state.cursor); return }
+            case _ => ()
+        }
+    }
+
+    // Standard key handling
     match (code) {
         case KeyCode.Char(ch) =>
             state.value = insertRuneAt(state.value, state.cursor, ch)
@@ -819,6 +876,8 @@ private func applyButtonEvent(ctx: Context, state: ButtonState, event: UiEvent, 
     match (event) {
         case UiEvent.Focus(nodeId) => if (nodeId == id) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (nodeId == id) { state.focused = false; state.pressed = false }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyButtonKey(ctx, state, keyEvent.code, id, label) }
         case UiEvent.Click(nodeId, _) => if (nodeId == id) { emitButtonPressed(ctx, state, id, label) }
         case _ => ()
@@ -837,6 +896,8 @@ private func applyCheckboxEvent(ctx: Context, state: CheckboxState, event: UiEve
     match (event) {
         case UiEvent.Focus(nodeId) => if (nodeId == id) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (nodeId == id) { state.focused = false }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyCheckboxKey(ctx, state, keyEvent.code, id) }
         case UiEvent.Click(nodeId, _) => if (nodeId == id) { toggleCheckbox(ctx, state, id) }
         case _ => ()
@@ -855,6 +916,8 @@ private func applyRadioEvent(ctx: Context, state: RadioState, event: UiEvent, id
     match (event) {
         case UiEvent.Focus(nodeId) => if (nodeId == id) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (nodeId == id) { state.focused = false }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyRadioKey(ctx, state, keyEvent.code, id, options) }
         case _ => ()
     }
@@ -876,6 +939,8 @@ private func applyTabsEvent(ctx: Context, state: TabsState, event: UiEvent, id: 
     match (event) {
         case UiEvent.Focus(nodeId) => if (nodeId == id) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (nodeId == id) { state.focused = false }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyTabsKey(ctx, state, keyEvent.code, id, labels) }
         case _ => ()
     }
@@ -895,6 +960,8 @@ private func applyModalEvent(ctx: Context, state: ModalState, event: UiEvent, id
     match (event) {
         case UiEvent.Focus(nodeId) => if (nodeId == id) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (nodeId == id) { state.focused = false }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyModalKey(ctx, state, keyEvent.code, id) }
         case UiEvent.Click(nodeId, _) => if (nodeId == id) { dismissModal(ctx, state, id) }
         case _ => ()
@@ -912,28 +979,34 @@ private func applyModalKey(ctx: Context, state: ModalState, code: KeyCode, id: S
 private func visibleScrollableLines(lines: Array<String>, offset: Int64, height: Int64): Array<String> {
     let start = clampInt64(offset, 0, maxScrollOffset(lines.size, height))
     let count = visibleItemCount(lines.size, start, height)
-    Array<String>(count, { index => formatScrollableLine(lines[start + index], index, count, start > 0, start + count < lines.size) })
+    let totalItems = lines.size
+    Array<String>(count, { index => formatScrollableLine(lines[start + index], index, count, totalItems, start) })
 }
 
 private func visibleListItems(items: Array<String>, state: ListState, height: Int64): Array<(Int64, String)> {
     let start = clampInt64(state.scrollOffset, 0, maxScrollOffset(items.size, height))
     let count = visibleItemCount(items.size, start, height)
-    Array<(Int64, String)>(count, { index => (start + index, formatListLine(items, start + index, state.selectedIndex, state.focused)) })
+    let totalItems = items.size
+    let needsScrollbar = totalItems > count
+    Array<(Int64, String)>(count, { index =>
+        let bar = if (needsScrollbar) { scrollbarChar(index, count, totalItems, start) } else { "" }
+        (start + index, formatListLine(items, start + index, state.selectedIndex, state.focused, bar))
+    })
 }
 
-private func formatListLine(items: Array<String>, index: Int64, selectedIndex: Int64, focused: Bool): String {
+private func formatListLine(items: Array<String>, index: Int64, selectedIndex: Int64, focused: Bool, bar: String): String {
     if (index == selectedIndex) {
         if (focused) {
-            return "> ${items[index]} <"
+            return "> ${items[index]} <" + bar
         }
-        return "[${items[index]}]"
+        return "[${items[index]}]" + bar
     }
-    "  ${items[index]}"
+    "  ${items[index]} " + bar
 }
 
-private func formatScrollableLine(line: String, index: Int64, count: Int64, hasAbove: Bool, hasBelow: Bool): String {
-    let marker = scrollMarker(index, count, hasAbove, hasBelow)
-    "|" + padOrTrim(line, 22) + marker
+private func formatScrollableLine(line: String, index: Int64, viewportHeight: Int64, totalItems: Int64, offset: Int64): String {
+    let bar = scrollbarChar(index, viewportHeight, totalItems, offset)
+    "|" + padOrTrim(line, 22) + bar
 }
 
 private func textInputContent(state: TextInputState, placeholder: String): String {
@@ -1038,6 +1111,55 @@ private func normalizeTextInputWindow(state: TextInputState, width: Int64, place
         nextOffset = anchor - slotCount + 1
     }
     state.viewOffset = clampInt64(nextOffset, 0, maxOffset)
+}
+
+private func isWordChar(ch: Rune): Bool {
+    (ch >= r'a' && ch <= r'z') || (ch >= r'A' && ch <= r'Z') || (ch >= r'0' && ch <= r'9') || ch == r'_'
+}
+
+private func findWordBoundaryLeft(text: String, cursor: Int64): Int64 {
+    let runes = text.toRuneArray()
+    let len = Int64(runes.size)
+    var pos = cursor - 1
+    // Skip non-word chars
+    while (pos > 0 && !isWordChar(runes[pos])) {
+        pos -= 1
+    }
+    // Skip word chars
+    while (pos > 0 && isWordChar(runes[pos - 1])) {
+        pos -= 1
+    }
+    clampInt64(pos, 0, len)
+}
+
+private func findWordBoundaryRight(text: String, cursor: Int64): Int64 {
+    let runes = text.toRuneArray()
+    let len = Int64(runes.size)
+    var pos = cursor
+    // Skip word chars
+    while (pos < len && isWordChar(runes[pos])) {
+        pos += 1
+    }
+    // Skip non-word chars
+    while (pos < len && !isWordChar(runes[pos])) {
+        pos += 1
+    }
+    pos
+}
+
+private func deleteWordBackward(state: TextInputState): Unit {
+    let boundary = findWordBoundaryLeft(state.value, state.cursor)
+    state.value = substringRunes(state.value, 0, boundary) + substringRunes(state.value, state.cursor, runeCount(state.value))
+    state.cursor = boundary
+}
+
+private func deleteToLineStart(state: TextInputState): Unit {
+    state.value = substringRunes(state.value, state.cursor, runeCount(state.value))
+    state.cursor = 0
+}
+
+private func deleteToLineEnd(state: TextInputState): Unit {
+    state.value = substringRunes(state.value, 0, state.cursor)
 }
 
 private func insertRuneAt(text: String, index: Int64, ch: Rune): String {
@@ -1146,17 +1268,17 @@ private func textInputSlotCount(width: Int64): Int64 {
     width
 }
 
-private func scrollMarker(index: Int64, count: Int64, hasAbove: Bool, hasBelow: Bool): String {
-    if (count <= 0) {
+private func scrollbarChar(row: Int64, viewportHeight: Int64, totalItems: Int64, offset: Int64): String {
+    if (totalItems <= viewportHeight || viewportHeight <= 0) {
         return "|"
     }
-    if (index == 0 && hasAbove) {
-        return "^"
+    let thumbSize = clampInt64(viewportHeight * viewportHeight / totalItems, 1, viewportHeight)
+    let maxOffset = totalItems - viewportHeight
+    let thumbStart = if (maxOffset > 0) { offset * (viewportHeight - thumbSize) / maxOffset } else { 0 }
+    if (row >= thumbStart && row < thumbStart + thumbSize) {
+        return "█"
     }
-    if (index == count - 1 && hasBelow) {
-        return "v"
-    }
-    "|"
+    "░"
 }
 
 private func padOrTrim(text: String, width: Int64): String {
@@ -1255,18 +1377,18 @@ private func spinnerFrames(spinnerType: SpinnerType): Array<String> {
     }
 }
 
-private func scrollableContainerStyle(focused: Bool): Style {
-    let borderColor = if (focused) { Color.BrightCyan } else { Color.BrightBlack }
+private func scrollableContainerStyle(focused: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (focused) { Color.BrightCyan } else if (hovered) { Color.Cyan } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Rounded, borderColor)).withBackground(Color.Black)
 }
 
-private func scrollableTextStyle(focused: Bool): TextStyle {
-    let foreground = if (focused) { Color.BrightWhite } else { Color.BrightBlack }
+private func scrollableTextStyle(focused: Bool, hovered!: Bool = false): TextStyle {
+    let foreground = if (focused) { Color.BrightWhite } else if (hovered) { Color.White } else { Color.BrightBlack }
     TextStyle().withForeground(foreground).withBackground(Color.Black)
 }
 
-private func listContainerStyle(focused: Bool): Style {
-    let borderColor = if (focused) { Color.BrightGreen } else { Color.BrightBlack }
+private func listContainerStyle(focused: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (focused) { Color.BrightGreen } else if (hovered) { Color.Green } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Single, borderColor)).withBackground(Color.Black)
 }
 
@@ -1279,8 +1401,8 @@ private func listLineStyle(selected: Bool, focused: Bool): TextStyle {
     TextStyle().withForeground(Color.White).withBackground(Color.Black)
 }
 
-private func textInputContainerStyle(focused: Bool): Style {
-    let borderColor = if (focused) { Color.BrightYellow } else { Color.BrightBlack }
+private func textInputContainerStyle(focused: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (focused) { Color.BrightYellow } else if (hovered) { Color.Yellow } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Single, borderColor)).withBackground(Color.Black)
 }
 
@@ -1301,11 +1423,13 @@ private func labelTextStyle(): TextStyle {
     TextStyle().withForeground(Color.BrightWhite)
 }
 
-private func buttonContainerStyle(focused: Bool, pressed: Bool): Style {
+private func buttonContainerStyle(focused: Bool, pressed: Bool, hovered!: Bool = false): Style {
     let borderColor = if (pressed) {
         Color.BrightRed
     } else if (focused) {
         Color.BrightMagenta
+    } else if (hovered) {
+        Color.Magenta
     } else {
         Color.BrightBlack
     }
@@ -1313,12 +1437,15 @@ private func buttonContainerStyle(focused: Bool, pressed: Bool): Style {
     Style().withBorder(Border(BorderStyle.Rounded, borderColor)).withBackground(background)
 }
 
-private func buttonTextStyle(focused: Bool, pressed: Bool): TextStyle {
+private func buttonTextStyle(focused: Bool, pressed: Bool, hovered!: Bool = false): TextStyle {
     if (pressed) {
         return TextStyle().withForeground(Color.BrightWhite).withBackground(Color.Red).withBold(true)
     }
     if (focused) {
         return TextStyle().withForeground(Color.BrightMagenta).withBold(true)
+    }
+    if (hovered) {
+        return TextStyle().withForeground(Color.Magenta)
     }
     TextStyle().withForeground(Color.White)
 }
@@ -1344,18 +1471,18 @@ private func formFieldLabelStyle(): TextStyle {
     TextStyle().withForeground(Color.BrightYellow).withBold(true)
 }
 
-private func checkboxContainerStyle(focused: Bool, checked: Bool): Style {
-    let borderColor = if (checked) { Color.BrightGreen } else if (focused) { Color.BrightYellow } else { Color.BrightBlack }
+private func checkboxContainerStyle(focused: Bool, checked: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (checked) { Color.BrightGreen } else if (focused) { Color.BrightYellow } else if (hovered) { Color.Yellow } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Single, borderColor)).withBackground(Color.Black)
 }
 
-private func checkboxTextStyle(focused: Bool, checked: Bool): TextStyle {
-    let foreground = if (checked) { Color.BrightGreen } else if (focused) { Color.BrightYellow } else { Color.White }
+private func checkboxTextStyle(focused: Bool, checked: Bool, hovered!: Bool = false): TextStyle {
+    let foreground = if (checked) { Color.BrightGreen } else if (focused) { Color.BrightYellow } else if (hovered) { Color.Yellow } else { Color.White }
     TextStyle().withForeground(foreground).withBold(focused || checked)
 }
 
-private func radioContainerStyle(focused: Bool): Style {
-    let borderColor = if (focused) { Color.BrightMagenta } else { Color.BrightBlack }
+private func radioContainerStyle(focused: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (focused) { Color.BrightMagenta } else if (hovered) { Color.Magenta } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Rounded, borderColor)).withBackground(Color.Black)
 }
 
@@ -1369,13 +1496,13 @@ private func radioTextStyle(selected: Bool, focused: Bool): TextStyle {
     TextStyle().withForeground(Color.BrightBlack)
 }
 
-private func tabsContainerStyle(focused: Bool): Style {
-    let borderColor = if (focused) { Color.BrightBlue } else { Color.BrightBlack }
+private func tabsContainerStyle(focused: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (focused) { Color.BrightBlue } else if (hovered) { Color.Blue } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Single, borderColor)).withBackground(Color.Black)
 }
 
-private func tabsTextStyle(focused: Bool): TextStyle {
-    let foreground = if (focused) { Color.BrightBlue } else { Color.White }
+private func tabsTextStyle(focused: Bool, hovered!: Bool = false): TextStyle {
+    let foreground = if (focused) { Color.BrightBlue } else if (hovered) { Color.Blue } else { Color.White }
     TextStyle().withForeground(foreground).withBold(focused)
 }
 
@@ -1387,8 +1514,8 @@ private func spinnerTextStyle(): TextStyle {
     TextStyle().withForeground(Color.BrightCyan).withBold(true)
 }
 
-private func modalContainerStyle(focused: Bool): Style {
-    let borderColor = if (focused) { Color.BrightRed } else { Color.BrightMagenta }
+private func modalContainerStyle(focused: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (focused) { Color.BrightRed } else if (hovered) { Color.Red } else { Color.BrightMagenta }
     Style().withBorder(Border(BorderStyle.Double, borderColor)).withBackground(Color.BrightBlack)
 }
 

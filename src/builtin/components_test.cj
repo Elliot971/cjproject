@@ -29,11 +29,11 @@ func scrollableViewShowsWindowFromOffset() {
         case DivNode(div) =>
             @Assert(div.childrenView.size, 2)
             match (div.childrenView[0]) {
-                case TextNode(text) => @Assert(text.content, "|two                   ^")
+                case TextNode(text) => @Assert(text.content, "|two                   ░")
                 case _ => @Fail("expected first visible text")
             }
             match (div.childrenView[1]) {
-                case TextNode(text) => @Assert(text.content, "|three                 |")
+                case TextNode(text) => @Assert(text.content, "|three                 █")
                 case _ => @Fail("expected second visible text")
             }
         case _ => @Fail("expected scrollable div")

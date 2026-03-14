@@ -37,6 +37,15 @@ public func forceFlushEsc(text: String): ParsedRawInput {
 }
 
 public func normalizeKeyName(name: String): KeyEvent {
+    // Handle modifier-prefixed key names: ctrl+X, alt+X
+    if (name.startsWith("ctrl+") && name.size > 5) {
+        let base = name[5..name.size]
+        return KeyEvent(normalizeNamedKey(base).code, KeyModifiers(true, false, false, false))
+    }
+    if (name.startsWith("alt+") && name.size > 4) {
+        let base = name[4..name.size]
+        return KeyEvent(normalizeNamedKey(base).code, KeyModifiers(false, true, false, false))
+    }
     match (name) {
         case "up" => KeyEvent(KeyCode.Up)
         case "down" => KeyEvent(KeyCode.Down)
@@ -103,6 +112,19 @@ public func parseRawInput(text: String): ParsedRawInput {
     if (first == r'\u{7f}' || first == r'\b') {
         return ParsedRawInput(RuntimeEvent.Key("backspace"), 1)
     }
+    // Ctrl+letter: raw bytes 0x01-0x1A not already handled above
+    if (first == r'\u{01}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+a"), 1) }
+    if (first == r'\u{02}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+b"), 1) }
+    if (first == r'\u{05}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+e"), 1) }
+    if (first == r'\u{06}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+f"), 1) }
+    if (first == r'\u{0b}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+k"), 1) }
+    if (first == r'\u{0c}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+l"), 1) }
+    if (first == r'\u{0e}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+n"), 1) }
+    if (first == r'\u{10}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+p"), 1) }
+    if (first == r'\u{12}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+r"), 1) }
+    if (first == r'\u{15}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+u"), 1) }
+    if (first == r'\u{17}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+w"), 1) }
+    if (first == r'\u{19}') { return ParsedRawInput(RuntimeEvent.Key("ctrl+y"), 1) }
     if (first == r'\u{1b}') {
         return parseEscapeSequence(runes)
     }
@@ -163,6 +185,10 @@ private func parseEscapeSequence(runes: Array<Rune>): ParsedRawInput {
     if (second == r'O') {
         return parseSs3Sequence(runes)
     }
+    // Alt+letter: ESC followed by a printable character
+    if (second >= r'!' && second <= r'~') {
+        return ParsedRawInput(RuntimeEvent.Key("alt+" + second.toString()), 2)
+    }
     ParsedRawInput(RuntimeEvent.Key("esc"), 1)
 }
 
@@ -180,6 +206,7 @@ private func parseCsiSequence(text: String, runes: Array<Rune>): ParsedRawInput 
         case r'D' => ParsedRawInput(RuntimeEvent.Key("left"), 3)
         case r'H' => ParsedRawInput(RuntimeEvent.Key("home"), 3)
         case r'F' => ParsedRawInput(RuntimeEvent.Key("end"), 3)
+        case r'Z' => ParsedRawInput(RuntimeEvent.Key("backtab"), 3)
         case r'2' => parseTildeSequence(runes, "insert")
         case r'3' => parseTildeSequence(runes, "delete")
         case r'5' => parseTildeSequence(runes, "pageup")

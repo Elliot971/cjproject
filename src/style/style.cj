@@ -58,6 +58,13 @@ public enum TextAlign {
     | Right
 }
 
+public enum TextWrap {
+    | NoWrap
+    | Character
+    | Word
+    | WordBreak
+}
+
 public enum Alignment {
     | Start
     | Center
@@ -171,6 +178,7 @@ public struct TextStyle {
     public let underline: Bool
     public let strikethrough: Bool
     public let align: TextAlign
+    public let wrap: TextWrap
 
     public init() {
         this.foreground = None
@@ -180,11 +188,12 @@ public struct TextStyle {
         this.underline = false
         this.strikethrough = false
         this.align = TextAlign.Left
+        this.wrap = TextWrap.NoWrap
     }
 
     public init(
-        foreground: ?Color,
-        background: ?Color,
+        foreground: Color,
+        background: Color,
         bold: Bool,
         italic: Bool,
         underline: Bool,
@@ -198,22 +207,47 @@ public struct TextStyle {
         this.underline = underline
         this.strikethrough = strikethrough
         this.align = align
+        this.wrap = TextWrap.NoWrap
+    }
+
+    public init(
+        foreground: ?Color,
+        background: ?Color,
+        bold: Bool,
+        italic: Bool,
+        underline: Bool,
+        strikethrough: Bool,
+        align: TextAlign,
+        wrap: TextWrap
+    ) {
+        this.foreground = foreground
+        this.background = background
+        this.bold = bold
+        this.italic = italic
+        this.underline = underline
+        this.strikethrough = strikethrough
+        this.align = align
+        this.wrap = wrap
     }
 
     public func withForeground(color: Color): TextStyle {
-        TextStyle(color, background, bold, italic, underline, strikethrough, align)
+        TextStyle(color, background, bold, italic, underline, strikethrough, align, wrap)
     }
 
     public func withBackground(color: Color): TextStyle {
-        TextStyle(foreground, color, bold, italic, underline, strikethrough, align)
+        TextStyle(foreground, color, bold, italic, underline, strikethrough, align, wrap)
     }
 
     public func withBold(value: Bool): TextStyle {
-        TextStyle(foreground, background, value, italic, underline, strikethrough, align)
+        TextStyle(foreground, background, value, italic, underline, strikethrough, align, wrap)
     }
 
     public func withUnderline(value: Bool): TextStyle {
-        TextStyle(foreground, background, bold, italic, value, strikethrough, align)
+        TextStyle(foreground, background, bold, italic, value, strikethrough, align, wrap)
+    }
+
+    public func withWrap(mode: TextWrap): TextStyle {
+        TextStyle(foreground, background, bold, italic, underline, strikethrough, align, mode)
     }
 }
 

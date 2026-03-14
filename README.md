@@ -12,52 +12,72 @@
 - 输出类型：`static`
 - 当前支持平台：Linux `x86_64`
 
-## 这个库能做什么
+## 功能概览
 
-`cjrxtui` 适合以下场景：
+**核心架构**
 
-- 命令行管理工具的交互式面板
-- 终端表单、列表、选择器、状态栏
-- 带键盘和鼠标操作的 TUI 应用
-- 可测试、可组合的 MVU 风格终端界面
-- 需要脱离真实终端做运行时验证和渲染验证的库/应用
+- MVU 模式：`Component` / `State` / `Message` / `Action` / `Context`
+- 声明式视图树：`Node` + `Div` 链式构建
+- 布局引擎：垂直/水平方向、间距、对齐、固定/百分比/内容尺寸
+- 样式系统：背景色、文本色、边框、溢出控制、绝对定位、层级
+- 渲染管线：`LayoutEngine → Renderer → FramePipeline → TerminalRenderer`
+- 双缓冲差分：按单元格计算 diff，仅输出变化部分
 
-核心能力包括：
+**终端控制**
 
-- MVU 架构：`Component`、`State`、`Message`、`Action`、`Context`
-- 布局系统：垂直/水平布局、间距、边距、对齐、固定尺寸、百分比尺寸、内容尺寸
-- 样式系统：背景色、文本色、边框、文本样式、定位、层级、溢出控制
-- 渲染系统：`LayoutEngine -> Renderer -> FramePipeline -> TerminalRenderer`
-- 双缓冲差分刷新：减少闪烁，按单元格输出 ANSI 更新
-- 终端控制：备用屏幕、隐藏光标、Raw 模式、鼠标捕获、终端尺寸探测
-- 输入系统：键盘、鼠标、窗口尺寸变化、Tick 事件
-- 焦点路由：支持键盘焦点和鼠标点击选中焦点节点
-- 异步效果：立即消息、延迟消息、定时消息、批量效果
-- 非交互测试能力：可直接对 `AppRuntime` 注入事件并断言帧输出
+- 备用屏幕、隐藏光标、Raw 模式
+- 鼠标捕获（点击、滚轮、移动、拖拽）
+- 终端尺寸探测（stty）与窗口 Resize 事件
+- Inline 行内模式：不进入备用屏幕，在当前光标位置渲染
+- 同步输出（Synchronized Output `?2026h/l`）：减少渲染撕裂
+
+**事件系统**
+
+- 键盘事件：字符键、方向键、功能键、Ctrl 修饰符
+- 鼠标事件：点击/释放/移动/拖拽/滚轮
+- Hover 追踪：自动派发 `HoverEnter` / `HoverLeave` 事件
+- 全局键盘拦截：通过 `RuntimeConfig.globalKeyHandler` 注册全局快捷键
+- Tab 焦点路由：支持 Tab/BackTab 在可聚焦节点间循环
+
+**文本处理**
+
+- 富文本（RichText）：多样式文本组合
+- 文本自动换行（TextWrap）：按字符 / 按单词 / 按单词+强制断行
+- 文本对齐：左/中/右
+
+**异步效果**
+
+- 立即消息、延迟消息、定时消息、批量效果
+- 主题订阅（Topic）机制
+
+**测试能力**
+
+- 可脱离终端运行：`AppRuntime` 支持注入事件并断言帧输出
+- `MemoryFrameSink`：捕获所有输出帧，用于单元断言
 
 ## 内置组件
 
-当前公开导出的内置组件共 17 个：
+共 17 个组件，均支持键盘操作与 Hover 状态追踪：
 
-| 组件 | 状态类型 | 主要用途 | 典型事件输出 |
-|------|----------|----------|--------------|
-| `Scrollable` | `ScrollableState` | 可滚动文本区域 | 无 |
-| `List` | `ListState` | 列表选择、滚动、点击选中 | `BuiltinEvent.ListItemSelected` |
-| `TextInput` | `TextInputState` | 单行文本输入 | `BuiltinEvent.TextInputSubmitted` |
-| `Label` | `LabelState` | 静态文本显示 | 无 |
-| `Button` | `ButtonState` | 可点击按钮 | `BuiltinEvent.ButtonPressed` |
-| `ProgressBar` | `ProgressBarState` | 进度显示 | 无 |
-| `Checkbox` | `CheckboxState` | 复选框 | `BuiltinEvent.CheckboxChanged` |
-| `Radio` | `RadioState` | 单选组 | `BuiltinEvent.RadioChanged` |
-| `Tabs` | `TabsState` | 标签切换 | `BuiltinEvent.TabChanged` |
-| `Spinner` | `SpinnerState` | 加载动画 | 无 |
-| `Modal` | `ModalState` | 模态框 | `BuiltinEvent.ModalDismissed` |
-| `Form` | `FormState` | 表单容器与 Tab 焦点管理 | 无 |
-| `Select` | `SelectState` | 下拉选择器 | `BuiltinEvent.SelectChanged` |
-| `TextArea` | `TextAreaState` | 多行文本输入 | `BuiltinEvent.TextAreaSubmitted` |
-| `Table` | `TableState` | 表格选择与滚动 | `BuiltinEvent.TableRowSelected` |
-| `Divider` | `DividerState` | 横向/纵向分割线 | 无 |
-| `StatusBar` | `StatusBarState` | 状态栏显示 | 无 |
+| 组件 | 状态类型 | 用途 | 事件输出 |
+|------|----------|------|----------|
+| `Scrollable` | `ScrollableState` | 可滚动文本区域 | — |
+| `List` | `ListState` | 列表选择、滚动 | `ListItemSelected` |
+| `TextInput` | `TextInputState` | 单行文本输入 | `TextInputSubmitted` |
+| `Button` | `ButtonState` | 按钮 | `ButtonPressed` |
+| `ProgressBar` | `ProgressBarState` | 进度条 | — |
+| `Checkbox` | `CheckboxState` | 复选框 | `CheckboxChanged` |
+| `Radio` | `RadioState` | 单选组 | `RadioChanged` |
+| `Tabs` | `TabsState` | 标签切换 | `TabChanged` |
+| `Spinner` | `SpinnerState` | 加载动画 | — |
+| `Modal` | `ModalState` | 模态框 | `ModalDismissed` |
+| `Form` | `FormState` | 表单容器 | — |
+| `Select` | `SelectState` | 下拉选择器 | `SelectChanged` |
+| `TextArea` | `TextAreaState` | 多行编辑器 | `TextAreaSubmitted` |
+| `Table` | `TableState` | 表格 | `TableRowSelected` |
+| `Divider` | `DividerState` | 分割线 | — |
+| `StatusBar` | `StatusBarState` | 状态栏 | — |
+| `Label` | `LabelState` | 静态文本 | — |
 
 ## 安装
 
@@ -70,115 +90,83 @@
 
 ### Git 仓库依赖
 
-仓库地址：
-
-`https://github.com/Elliot971/cjproject.git`
-
-当仓库发布正式标签后，可以在你的 `cjpm.toml` 中使用 git 依赖，例如：
-
 ```toml
 [dependencies]
   cjrxtui = { git = "https://github.com/Elliot971/cjproject.git", tag = "v0.1.0" }
 ```
 
-未使用标签时，也可通过 path 依赖直接引入本地仓库。
-
 ## 快速开始
-
-### 构建库
 
 ```bash
 source path/to/cangjie/envsetup.sh
 cd cjrxtui
 cjpm build
-```
-
-### 运行测试
-
-```bash
 cjpm test --parallel 1
 ```
 
-### 最小可运行示例
-
-下面这个示例展示了一个最简单的交互式计数器：
+### 最小示例：交互式计数器
 
 ```cangjie
 import cjrxtui.*
 
 class CounterState <: State {
-    public var count: Int64
-
-    public init() {
-        count = 0
-    }
+    public var count: Int64 = 0
+    public init() {}
 }
 
 class Counter <: Component {
     public func update(ctx: Context, msg: Message, state: State): Action {
         let _ = ctx
-        let counter = (state as CounterState).getOrThrow()
-
+        let s = (state as CounterState).getOrThrow()
         if (let Some(event) <- (msg as UiEvent)) {
             match (event) {
                 case UiEvent.Key(keyEvent) =>
                     match (keyEvent.code) {
-                        case KeyCode.Up => counter.count += 1
-                        case KeyCode.Down => counter.count -= 1
+                        case KeyCode.Up => s.count += 1
+                        case KeyCode.Down => s.count -= 1
                         case KeyCode.Esc => return Action.exit()
                         case _ => ()
                     }
                 case _ => ()
             }
         }
-
-        Action.update(counter)
+        Action.update(s)
     }
 
     public func view(ctx: Context, state: State): Node {
         let _ = ctx
-        let counter = (state as CounterState).getOrThrow()
-
+        let s = (state as CounterState).getOrThrow()
         Node.div(
             Div()
                 .width(Dimension.Fixed(24))
                 .height(Dimension.Fixed(4))
-                .style(
-                    Style()
-                        .withBorder(Border(BorderStyle.Rounded, Color.BrightCyan))
-                        .withPadding(Spacing.all(1))
-                        .withBackground(Color.Black)
-                )
-                .child(Node.text("Count: ${counter.count}", Some(TextStyle().withForeground(Color.BrightWhite).withBold(true))))
-                .child(Node.text("Up/Down +/-, Esc exit", Some(TextStyle().withForeground(Color.BrightBlack))))
+                .style(Style().withBorder(Border(BorderStyle.Rounded, Color.BrightCyan)).withPadding(Spacing.all(1)))
+                .child(Node.text("Count: ${s.count}", TextStyle().withForeground(Color.BrightWhite).withBold(true)))
+                .child(Node.text("Up/Down +/-, Esc exit", TextStyle().withForeground(Color.BrightBlack)))
         )
     }
 }
 
 main() {
-    App.runInteractive(Counter(), CounterState(), 24, 4)
+    App.runInteractive(Counter(), CounterState())
 }
 ```
 
 ## 核心设计
 
-`cjrxtui` 的主体由 7 个层次组成：
+### 架构层次
 
-1. `component/`：组件协议、消息协议、Action、Effect、Context
-2. `node/`：声明式视图树定义
-3. `style/`：布局和文本样式模型
-4. `layout/`：将视图树转换为布局盒模型
-5. `render/`：将布局结果写入屏幕缓冲区
-6. `buffer/`：双缓冲差分计算
-7. `terminal/`：ANSI 输出、Raw 模式与终端能力封装
-
-这一结构使它既能做真实终端交互，也能在测试里直接验证中间结果。
-
-## 核心 API 详解
+```
+component/   组件协议、消息、Action、Effect、Context
+node/        声明式视图树
+style/       布局和文本样式模型
+layout/      视图树 → 布局盒模型
+render/      布局结果 → 屏幕缓冲区
+buffer/      双缓冲差分计算
+terminal/    ANSI 输出、Raw 模式与终端控制
+```
 
 ### 组件模型
-
-所有业务组件都实现 `Component`：
 
 ```cangjie
 interface Component {
@@ -187,116 +175,65 @@ interface Component {
 }
 ```
 
-相关基础类型：
-
-- `Message`：消息基接口
-- `State`：状态基接口
-- `Context`：组件上下文，负责发送消息、请求焦点等
-- `Action`：`update` 的返回值，用于驱动运行时行为
-
 ### Action
 
-`Action` 是运行时理解组件意图的核心类型，当前支持：
-
 ```cangjie
-Action.update(state)
+Action.update(state)           // 更新状态
+Action.none()                  // 无操作
+Action.exit()                  // 退出应用
+Action.command(message)        // 发送消息
+Action.effect(effect)          // 触发异步效果
+Action.batch(actions)          // 批量组合
 Action.updateTopic(topic, state)
-Action.none()
-Action.command(message)
 Action.commandTopic(topic, message)
-Action.effect(effect)
-Action.batch(actions)
-Action.exit()
 ```
-
-常见使用方式：
-
-- `Action.update(state)`：返回更新后的状态
-- `Action.none()`：不做任何额外动作
-- `Action.effect(...)`：触发异步效果
-- `Action.batch([...])`：批量组合多个动作
-- `Action.exit()`：退出应用
 
 ### Context
 
-`Context` 公开提供：
-
-- `ctx.send(message)`：向当前运行时发送消息
-- `ctx.sendToTopic(topic, message)`：发送主题消息
-- `ctx.focus(nodeId)`：请求将焦点切到指定节点
-- `ctx.isFirstRender()`：判断当前是否为首次渲染
+```cangjie
+ctx.send(message)              // 发送消息
+ctx.sendToTopic(topic, message)// 主题消息
+ctx.focus(nodeId)              // 请求焦点
+ctx.isFirstRender()            // 是否首次渲染
+```
 
 ### Effects
 
-异步效果由 `Effects` 工厂提供：
-
 ```cangjie
 Effects.send(message)
-Effects.sendToTopic(topic, message)
 Effects.delay(delayMillis, message)
-Effects.delayToTopic(delayMillis, topic, message)
 Effects.interval(intervalMillis, repeatCount, message)
 Effects.batch(effects)
 ```
 
-适合这些场景：
-
-- 定时刷新 spinner
-- 延迟关闭提示框
-- 异步触发后续业务消息
-- 将多个副作用打包执行
-
-### 事件系统
-
-终端交互最终会归一化为 `UiEvent`：
+### 事件类型
 
 ```cangjie
-UiEvent.Tick
-UiEvent.Exit
-UiEvent.Key(KeyEvent)
-UiEvent.Mouse(MouseEvent)
-UiEvent.Click(String, MouseEvent)
-UiEvent.Resize(ResizeEvent)
-UiEvent.Focus(String)
-UiEvent.Blur(String)
+UiEvent.Key(KeyEvent)          // 键盘
+UiEvent.Mouse(MouseEvent)      // 鼠标
+UiEvent.Click(String, MouseEvent) // 节点点击
+UiEvent.Resize(ResizeEvent)    // 窗口尺寸变化
+UiEvent.Focus(String)          // 焦点获得
+UiEvent.Blur(String)           // 焦点失去
+UiEvent.HoverEnter(String)     // 鼠标进入节点
+UiEvent.HoverLeave(String)     // 鼠标离开节点
+UiEvent.Tick                   // 定时心跳
 ```
 
-键盘类型 `KeyCode` 支持：
-
-- 字符键：`KeyCode.Char(...)`
-- 命名键：`Up`、`Down`、`Left`、`Right`
-- 控制键：`Enter`、`Esc`、`Tab`、`BackTab`、`Backspace`
-- 导航键：`Home`、`End`、`PageUp`、`PageDown`
-- 编辑键：`Insert`、`Delete`
-- 功能键：`Function(Int64)`
-- 扩展命名键：`Named(String)`
-
-鼠标类型 `MouseEventKind` 支持：
-
-- `Down(MouseButton)`
-- `Up(MouseButton)`
-- `Move`
-- `Drag(MouseButton)`
-- `ScrollUp`
-- `ScrollDown`
-
-### 声明式节点树
-
-界面通过 `Node` 和 `Div` 组合：
+### 节点树构建
 
 ```cangjie
-Node.div(div)
-Node.text("hello")
-Node.text("hello", Some(textStyle))
-Node.richText(richText)
-Node.when(condition, node)
-Node.list(nodes)
-Node.hstack(nodes)
-Node.vstack(nodes)
-Node.spacer(width, height)
+Node.div(div)                  // 容器节点
+Node.text("hello")             // 文本节点
+Node.text("hello", textStyle)  // 带样式文本
+Node.richText(richText)        // 富文本
+Node.when(condition, node)     // 条件渲染
+Node.list(nodes)               // 节点列表
+Node.hstack(nodes) / .vstack(nodes) // 水平/垂直堆叠
+Node.spacer(width, height)     // 占位
 ```
 
-`Div` 提供链式构建能力：
+### Div 链式构建
 
 ```cangjie
 Div()
@@ -304,303 +241,217 @@ Div()
     .children(nodes)
     .style(style)
     .direction(Direction.Vertical)
+    .width(Dimension.Fixed(40))
+    .height(Dimension.Percentage(50))
     .padding(Spacing.all(1))
     .gap(1)
-    .margin(Spacing.symmetric(2, 1))
     .alignItems(Alignment.Center)
     .justifyContent(JustifyContent.SpaceBetween)
-    .alignSelf(AlignSelf.Center)
-    .width(Dimension.Fixed(40))
-    .height(Dimension.Fixed(10))
     .focusable()
-    .id("root")
+    .id("my-node")
 ```
 
-### 布局与样式
+### 样式
 
-样式层分为容器样式 `Style` 和文本样式 `TextStyle`。
+**容器样式 `Style`**：
 
-常用容器能力：
+```cangjie
+Style()
+    .withBackground(Color.Black)
+    .withBorder(Border(BorderStyle.Rounded, Color.Cyan))
+    .withPadding(Spacing.all(1))
+    .withMargin(Spacing.symmetric(2, 1))
+    .withOverflow(Overflow.Hidden)
+    .withPosition(Position.Absolute)
+    .withZIndex(10)
+```
 
-- `Style().withBackground(color)`
-- `Style().withDirection(direction)`
-- `Style().withPadding(spacing)`
-- `Style().withMargin(spacing)`
-- `Style().withWidth(dimension)`
-- `Style().withHeight(dimension)`
-- `Style().withGap(value)`
-- `Style().withOverflow(overflow)`
-- `Style().withBorder(border)`
-- `Style().withPosition(position)`
-- `Style().withTop(...) / withRight(...) / withBottom(...) / withLeft(...)`
-- `Style().withZIndex(...)`
-- `Style().withAlignItems(...)`
-- `Style().withJustifyContent(...)`
-- `Style().withAlignSelf(...)`
+**文本样式 `TextStyle`**：
 
-常用文本能力：
+```cangjie
+TextStyle()
+    .withForeground(Color.BrightWhite)
+    .withBackground(Color.Blue)
+    .withBold(true)
+    .withUnderline(true)
+    .withWrap(TextWrap.Word)     // 文本自动换行
+```
 
-- `TextStyle().withForeground(color)`
-- `TextStyle().withBackground(color)`
-- `TextStyle().withBold(true)`
-- `TextStyle().withUnderline(true)`
-
-主要样式类型：
+**主要类型**：
 
 - `Color`：基础 16 色 + `Rgb(UInt8, UInt8, UInt8)`
-- `BorderStyle`：`None`、`Single`、`Double`、`Rounded`、`Thick`
-- `BorderEdges`：支持全边/水平/垂直/自定义边框
-- `Spacing`：`zero`、`all`、`symmetric`
-- `Dimension`：`Fixed`、`Percentage`、`Auto`、`Content`
-- `Direction`：垂直/水平
-- `Overflow`：`Visible`、`Hidden`、`Scroll`、`Auto`
-- `Position`：`Relative`、`Absolute`
-- `SpinnerType`：`Line`、`Dots`、`Circle`、`Arrow`、`Bounce`、`Hearts`、`Custom`
+- `BorderStyle`：`None` / `Single` / `Double` / `Rounded` / `Thick`
+- `Dimension`：`Fixed` / `Percentage` / `Auto` / `Content`
+- `TextWrap`：`NoWrap` / `Character` / `Word` / `WordBreak`
+- `TextAlign`：`Left` / `Center` / `Right`
+- `Overflow`：`Visible` / `Hidden` / `Scroll` / `Auto`
 
-### App 与运行时 API
+## 运行时 API
 
-`App` 是最常用入口：
+### App 入口
 
 ```cangjie
-App.createSession(root, initialState)
-App.createRuntime(root, initialState)
-App.createRuntime(root, initialState, config)
-App.createRunner()
-App.createInteractiveRunner()
-App.runInteractive(root, initialState)
-App.runInteractive(root, initialState, width, height)
-App.runInline(root, initialState, width, height)
+App.runInteractive(root, state)                // 全屏交互运行
+App.runInteractive(root, state, width, height) // 指定尺寸
+App.runInline(root, state, width, height)      // 行内模式运行
+App.createRuntime(root, state, config)         // 创建可编程运行时
+App.createRunner()                             // 创建 Runner
 ```
 
-其中最常见的是：
-
-- `App.runInteractive(...)`：进入备用屏幕并接管终端输入
-- `App.runInline(...)`：行内运行，不清空备用屏幕
-- `App.createRuntime(...)`：更适合测试、脚本驱动和自定义事件源
-
-运行时配置：
+### RuntimeConfig
 
 ```cangjie
-RuntimeConfig(width, height, clearScreenOnStart, mouseCapture)
+RuntimeConfig()                                          // 默认 80×24
+RuntimeConfig(width, height, clearScreenOnStart)         // 基础配置
+RuntimeConfig(width, height, clear, mouseCapture)        // 启用鼠标
+RuntimeConfig(w, h, clear, mouse, globalKeyHandler)      // 全局按键
+
+// 全局键盘拦截示例
+RuntimeConfig(80, 24, true, true, { key: KeyEvent =>
+    match (key.code) {
+        case KeyCode.Char(ch) =>
+            if (ch == r'q') { return Some(Action.exit()) }
+            None
+        case _ => None
+    }
+})
+
+RuntimeConfig.inline(width, height)                      // Inline 模式工厂方法
 ```
 
-`AppRuntime` 提供可测试接口：
-
-- `bootFrame()`：返回初始帧
-- `step(message)`：推进一步消息处理
-- `stepKey(name)`：按名字注入按键，如 `"up"`
-- `tick()`：发送 Tick
-- `dispatch(event)` / `runOnce(event)`：注入运行时事件
-- `runLoop(events)`：批量执行事件序列
-- `resize(width, height)`：触发尺寸变化
-- `currentState()`：读取当前状态
-- `snapshot()`：读取运行时快照
-- `flushAsync()`：刷新异步消息队列
-
-### 运行时事件源与终端 API
-
-库同时导出了这些更底层能力：
-
-- 事件源：`RuntimeEventSource`、`PollingRuntimeEventSource`
-- 内置事件源：`ArrayRuntimeEventSource`、`StdinRuntimeEventSource`、`RawStdinRuntimeEventSource`、`RawStringRuntimeEventSource`、`InteractiveRuntimeEventSource`
-- 帧输出：`FrameSink`、`StdoutFrameSink`、`MemoryFrameSink`
-- 终端尺寸：`TerminalSize`、`TerminalSizeReader`、`SttyTerminalSizeReader`、`NoopTerminalSizeReader`
-- 输入模式：`TerminalModeController`、`SttyTerminalModeController`、`NoopTerminalModeController`
-- ANSI 渲染：`TerminalRenderer`
-
-如果你需要自己解析原始输入，也可以直接使用：
+### AppRuntime（可测试接口）
 
 ```cangjie
-parseInputLine(...)
-parseRawInput(...)
-normalizeKeyName(...)
-normalizeRuntimeEvent(...)
-forceFlushEsc(...)
+runtime.bootFrame()            // 初始帧
+runtime.step(message)          // 注入消息
+runtime.stepKey("up")          // 注入按键
+runtime.tick()                 // 发送 Tick
+runtime.dispatch(event)        // 注入运行时事件
+runtime.runLoop(events)        // 批量事件
+runtime.resize(width, height)  // 触发尺寸变化
+runtime.currentState()         // 读取状态
+runtime.flushAsync()           // 刷新异步队列
 ```
 
-## 内置组件 API 速览
+## 文本自动换行
 
-下面列出每个组件最常用的构造方式和交互行为。
-
-### Scrollable
+通过 `TextStyle.withWrap(mode)` 启用文本自动换行，布局引擎会根据可用宽度自动插入换行：
 
 ```cangjie
-Scrollable(lines, width, height)
-Scrollable(lines, width, height, id)
+// 按字符强制换行
+Node.text("abcdefghij", TextStyle().withWrap(TextWrap.Character))
+
+// 按单词换行（在空格处断行）
+Node.text("The quick brown fox jumps", TextStyle().withWrap(TextWrap.Word))
+
+// 按单词换行 + 长单词强制断行
+Node.text("Superlongword here", TextStyle().withWrap(TextWrap.WordBreak))
 ```
 
-- 状态：`ScrollableState(offset, focused)`
-- 支持 `Up` / `Down` / `PageUp` / `PageDown` / `Home` / `End`
-- 支持鼠标滚轮滚动
+| 模式 | 行为 |
+|------|------|
+| `NoWrap` | 默认，不自动换行 |
+| `Character` | 到达宽度边界时按字符强制换行 |
+| `Word` | 在空格处断行，保持单词完整 |
+| `WordBreak` | 优先空格断行，超长单词强制断行 |
 
-### List
+## 全局键盘事件
+
+通过 `RuntimeConfig` 注册全局键盘拦截器，优先于所有组件处理按键：
 
 ```cangjie
-List(items, width, height)
-List(items, width, height, id)
+let config = RuntimeConfig(80, 24, true, true, { key: KeyEvent =>
+    match (key.code) {
+        case KeyCode.Char(ch) =>
+            if (ch == r'q') { return Some(Action.exit()) }   // 全局 q 退出
+            None
+        case _ => None
+    }
+})
+
+let runtime = App.createRuntime(MyComponent(), MyState(), config)
 ```
 
-- 状态：`ListState(selectedIndex, scrollOffset, focused)`
-- 支持键盘上下移动、滚轮滚动、点击选中
-- 触发：`BuiltinEvent.ListItemSelected(id, index, text)`
+- 返回 `Some(action)` → 拦截按键，执行 action，不再传递给组件
+- 返回 `None` → 不拦截，按键继续正常路由到聚焦组件
 
-### TextInput
+## Inline 终端模式
+
+在不进入备用屏幕的情况下，在当前光标位置渲染 TUI：
 
 ```cangjie
-TextInput(width)
-TextInput(width, id, placeholder)
+// 方式 1: 便捷方法
+App.runInline(MyComponent(), MyState(), 40, 10)
+
+// 方式 2: 手动配置
+let config = RuntimeConfig.inline(40, 10)
+let runtime = App.createRuntime(MyComponent(), MyState(), config)
 ```
 
-- 状态：`TextInputState(value, cursor, focused, viewOffset)`
-- 支持单行编辑、左右移动、退格、删除、回车提交
-- 触发：`BuiltinEvent.TextInputSubmitted(id, value)`
+Inline 模式特点：
+- 不切换备用屏幕，渲染完成后内容保留在终端历史中
+- 启动时预留 N 行空间，光标上移到起始位置
+- 退出时光标移至渲染区域下方，恢复正常终端状态
+- 适合：命令行工具中嵌入交互式选择、进度指示等短期 TUI
 
-### Button
+## 同步输出优化
+
+渲染管线自动采用以下优化策略：
+
+- **Run 合并**：连续相同样式的单元格合并为单次 Print 输出，减少 ANSI 指令数量
+- **同步输出包裹**：非空帧自动包裹 `?2026h` / `?2026l` 序列，终端支持时可消除渲染撕裂
+- **差分渲染**：双缓冲逐单元格比较，仅输出发生变化的区域
+
+这些优化对用户透明，无需额外配置。
+
+## 内置组件速览
+
+### Scrollable / List / TextInput
 
 ```cangjie
-Button(label, width, id)
+Scrollable(lines, width, height, id)   // Up/Down/PageUp/PageDown/Home/End/滚轮
+List(items, width, height, id)         // 键盘上下/回车选中/鼠标点击
+TextInput(width, id, placeholder)      // 单行编辑/退格/删除/左右移动/回车提交
 ```
 
-- 状态：`ButtonState(focused, pressed)`
-- 支持回车触发和点击触发
-- 触发：`BuiltinEvent.ButtonPressed(id, label)`
-
-### Checkbox
+### Button / Checkbox / Radio
 
 ```cangjie
-Checkbox(label, width, id)
+Button(label, width, id)              // 回车/空格/点击触发
+Checkbox(label, width, id)            // 空格切换/点击切换
+Radio(options, width, id)             // 上下选择
 ```
 
-- 状态：`CheckboxState(checked, focused)`
-- 支持键盘和点击切换
-- 触发：`BuiltinEvent.CheckboxChanged(id, checked)`
-
-### Radio
+### Select / Tabs / Spinner
 
 ```cangjie
-Radio(options, width, id)
+Select(options, width, id)            // 回车展开/上下选择/回车确认
+Tabs(labels, width, id)               // 左右切换标签
+Spinner(label, width, id)             // 响应 Tick 播放动画
+Spinner(label, width, id, SpinnerType.Dots) // 自定义动画类型
 ```
 
-- 状态：`RadioState(selectedIndex, focused)`
-- 支持单选切换
-- 触发：`BuiltinEvent.RadioChanged(id, index, option)`
-
-### Tabs
+### Table / TextArea / Modal
 
 ```cangjie
-Tabs(labels, width, id)
+Table(headers, rows, colWidths, width, height, id)  // 表头/选中行高亮/分页
+TextArea(width, height, id)           // 多行编辑/方向键/Ctrl+Enter 提交
+Modal(title, bodyLines, width, height, id)           // 模态框
 ```
 
-- 状态：`TabsState(selectedIndex, focused)`
-- 支持左右或上下切换标签
-- 触发：`BuiltinEvent.TabChanged(id, index, label)`
-
-### Spinner
+### Form / StatusBar / Divider / Label / ProgressBar
 
 ```cangjie
-Spinner(label, width, id)
-Spinner(label, width, id, spinnerType)
+Form(title, width, id, fields)        // Tab 切换字段焦点
+StatusBar(width, id)                  // 底部状态栏
+Divider(length, dir, label, color)    // 横向/纵向分割线
+Label(text, width)                    // 静态文本
+ProgressBar(width, maxValue, id)      // 进度条
 ```
-
-- 状态：`SpinnerState(frameIndex)`
-- 响应 `UiEvent.Tick`
-- 用于加载提示、轮询反馈和状态等待
-
-### Modal
-
-```cangjie
-Modal(title, bodyLines, width, height, id)
-```
-
-- 状态：`ModalState(open, focused)`
-- 支持关闭行为
-- 触发：`BuiltinEvent.ModalDismissed(id)`
-
-### ProgressBar
-
-```cangjie
-ProgressBar(width, maxValue, id)
-```
-
-- 状态：`ProgressBarState(value)`
-- 自动将 `value` 约束在 `[0, maxValue]`
-
-### Form
-
-```cangjie
-Form(title, width, id, fields)
-```
-
-- 状态：`FormState(activeField)`
-- `fields` 类型：`Array<(String, Component)>`
-- 支持 `Tab` 在字段间切换焦点
-
-### Select
-
-```cangjie
-Select(options, width, id)
-Select(options, width, maxVisibleItems, id)
-```
-
-- 状态：`SelectState(selectedIndex)` 或默认构造状态
-- 支持展开、收起、上下高亮、回车确认
-- 触发：`BuiltinEvent.SelectChanged(id, index, option)`
-
-### TextArea
-
-```cangjie
-TextArea(width, height, id)
-```
-
-- 状态：`TextAreaState()` 或 `TextAreaState(text)`
-- 支持多行编辑、换行、删除、方向键移动、滚动保持可见
-- `Ctrl + Enter` 提交
-- 触发：`BuiltinEvent.TextAreaSubmitted(id, text)`
-
-### Table
-
-```cangjie
-Table(headers, rows, columnWidths, width, height, id)
-```
-
-- 状态：`TableState(selectedRow, scrollOffset, focused)`
-- 支持表头、分隔线、选中行高亮、滚轮和分页导航
-- 触发：`BuiltinEvent.TableRowSelected(id, rowIndex)`
-
-### Divider
-
-```cangjie
-Divider(length)
-Divider(length, dir)
-Divider(length, dir, label)
-Divider(length, dir, label, color)
-```
-
-- 状态：`DividerState`
-- 支持横向与纵向分割线
-
-### StatusBar
-
-```cangjie
-StatusBar(width, id)
-StatusBar(width, id, background, foreground)
-```
-
-- 状态：`StatusBarState(sections)`
-- 用于底部提示、状态摘要、快捷键提示
-
-### Label
-
-```cangjie
-Label(text, width)
-```
-
-- 状态：`LabelState`
-- 用于静态文本或辅助说明
 
 ## BuiltinEvent 列表
 
-如果你的根组件要接收内置组件发出的业务事件，可以在 `update` 里匹配这些消息：
+内置组件通过 `BuiltinEvent` 向父级冒泡业务事件：
 
 ```cangjie
 BuiltinEvent.ListItemSelected(id, index, text)
@@ -615,88 +466,46 @@ BuiltinEvent.TextAreaSubmitted(id, text)
 BuiltinEvent.SelectChanged(id, index, option)
 ```
 
-## 非交互测试示例
-
-如果你想把它作为第三方库集成到 CI 或测试项目中，推荐直接用 `AppRuntime`：
+## 非交互测试
 
 ```cangjie
-import cjrxtui.*
+let runtime = App.createRuntime(MyComponent(), MyState(), RuntimeConfig(20, 1, false, false))
+let boot = runtime.bootFrame()
+let step = runtime.step(UiEvent.Key(KeyEvent(KeyCode.Enter)))
 
-class TestState <: State {
-    public var count: Int64
-
-    public init() {
-        count = 0
-    }
-}
-
-class TestComponent <: Component {
-    public func update(ctx: Context, msg: Message, state: State): Action {
-        let _ = ctx
-        let s = (state as TestState).getOrThrow()
-        if (let Some(event) <- (msg as UiEvent)) {
-            match (event) {
-                case UiEvent.Key(keyEvent) =>
-                    match (keyEvent.code) {
-                        case KeyCode.Enter => s.count += 1
-                        case _ => ()
-                    }
-                case _ => ()
-            }
-        }
-        Action.update(s)
-    }
-
-    public func view(ctx: Context, state: State): Node {
-        let _ = ctx
-        let s = (state as TestState).getOrThrow()
-        Node.text("count=${s.count}")
-    }
-}
-
-main() {
-    let runtime = App.createRuntime(TestComponent(), TestState(), RuntimeConfig(20, 1, false, false))
-    let boot = runtime.bootFrame()
-    let step = runtime.step(UiEvent.Key(KeyEvent(KeyCode.Enter)))
-
-    println(boot.frame)
-    println(step.frame)
-}
+// boot.frame / step.frame 包含 ANSI 输出，可用 contains 断言
+// runtime.currentState() 可读取和断言内部状态
 ```
 
 ## 项目结构
 
-```text
+```
 src/
-├── lib.cj
+├── lib.cj                    # 公共导出
 ├── app/
-│   ├── app.cj
-│   ├── events.cj
-│   ├── runner.cj
-│   └── runtime.cj
+│   ├── app.cj                # App 入口、工厂方法
+│   ├── events.cj             # 输入解析（ANSI 序列/鼠标协议）
+│   ├── runner.cj             # AppRunner、事件源、帧输出
+│   └── runtime.cj            # RuntimeConfig、AppRuntime 核心
 ├── buffer/
-│   └── buffer.cj
+│   └── buffer.cj             # Cell、ScreenBuffer、DoubleBuffer
 ├── builtin/
-│   ├── components.cj
-│   ├── divider.cj
-│   ├── select.cj
-│   ├── statusbar.cj
-│   ├── table.cj
-│   └── textarea.cj
+│   ├── components.cj         # 大部分内置组件实现
+│   ├── divider.cj / select.cj / statusbar.cj / table.cj / textarea.cj
 ├── component/
-│   ├── component.cj
-│   ├── context.cj
-│   └── events.cj
+│   ├── component.cj          # Component/Action/Effect 协议
+│   ├── context.cj            # Context 类
+│   └── events.cj             # UiEvent/KeyEvent/MouseEvent 定义
 ├── layout/
-│   └── layout.cj
+│   └── layout.cj             # LayoutEngine、文本换行
 ├── node/
-│   └── node.cj
+│   └── node.cj               # Node/Div/RichText 定义
 ├── render/
-│   └── renderer.cj
+│   └── renderer.cj           # Renderer、FramePipeline
 ├── style/
-│   └── style.cj
+│   └── style.cj              # Style/TextStyle/TextWrap/Color 等
 └── terminal/
-    └── terminal.cj
+    └── terminal.cj           # TerminalRenderer、ANSI 输出、Run 合并
 ```
 
 ## 对外公开模块

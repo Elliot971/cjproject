@@ -112,4 +112,6 @@ public enum UiEvent <: Message {
     | Resize(ResizeEvent)
     | Focus(String)
     | Blur(String)
+    | HoverEnter(String)
+    | HoverLeave(String)
 }

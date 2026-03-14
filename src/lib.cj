@@ -7,5 +7,5 @@ public import cjrxtui.component.{Action, Component, ComponentId, Context, Effect
 public import cjrxtui.layout.{LayoutBox, LayoutEngine, LayoutKind, Rect, Size}
 public import cjrxtui.node.{Div, Node, RichText, Text, TextSpan}
 public import cjrxtui.render.{FramePipeline, FrameResult, RenderBuffer, Renderer}
-public import cjrxtui.style.{Alignment, AlignSelf, Border, BorderEdges, BorderStyle, Color, Dimension, Direction, JustifyContent, Overflow, Position, Spacing, SpinnerType, Style, TextAlign, TextStyle}
+public import cjrxtui.style.{Alignment, AlignSelf, Border, BorderEdges, BorderStyle, Color, Dimension, Direction, JustifyContent, Overflow, Position, Spacing, SpinnerType, Style, TextAlign, TextStyle, TextWrap}
 public import cjrxtui.terminal.{NoopTerminalModeController, NoopTerminalSizeReader, SttyTerminalModeController, SttyTerminalSizeReader, TerminalCommand, TerminalInputMode, TerminalModeController, TerminalRenderer, TerminalSize, TerminalSizeReader}

@@ -8,17 +8,20 @@ public class TableState <: State {
     public var selectedRow: Int64
     public var scrollOffset: Int64
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         selectedRow = 0
         scrollOffset = 0
         focused = false
+        hovered = false
     }
 
     public init(selectedRow: Int64, scrollOffset: Int64, focused: Bool) {
         this.selectedRow = selectedRow
         this.scrollOffset = scrollOffset
         this.focused = focused
+        this.hovered = false
     }
 }
 
@@ -55,7 +58,7 @@ public class Table <: Component {
             .focusable()
             .width(Dimension.Fixed(width))
             .height(Dimension.Fixed(height))
-            .style(tableContainerStyle(tableState.focused))
+            .style(tableContainerStyle(tableState.focused, hovered: tableState.hovered))
 
         container.child(Node.text(renderTableRow(headers, columnWidths, width), tableHeaderStyle()))
         container.child(Node.text(renderTableSeparator(columnWidths, width), tableSeparatorStyle()))
@@ -75,6 +78,8 @@ private func applyTableEvent(ctx: Context, state: TableState, event: UiEvent, id
     match (event) {
         case UiEvent.Focus(nodeId) => if (nodeId == id) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (nodeId == id) { state.focused = false }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyTableKey(ctx, state, keyEvent.code, id, rowCount, viewportHeight) }
         case UiEvent.Mouse(mouseEvent) => if (state.focused) { applyTableMouse(state, mouseEvent.kind, rowCount, viewportHeight) }
         case _ => ()
@@ -149,8 +154,8 @@ private func renderTableSeparator(columnWidths: Array<Int64>, totalWidth: Int64)
     tablePadOrTrim(result, totalWidth)
 }
 
-private func tableContainerStyle(focused: Bool): Style {
-    let borderColor = if (focused) { Color.BrightCyan } else { Color.BrightBlack }
+private func tableContainerStyle(focused: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (focused) { Color.BrightCyan } else if (hovered) { Color.Cyan } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Single, borderColor)).withBackground(Color.Black)
 }
 

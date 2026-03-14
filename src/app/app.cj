@@ -69,7 +69,7 @@ public class App {
     }
 
     public static func runInline(root: Component, initialState: State, width: Int64, height: Int64): Unit {
-        let runtime = AppRuntime(root, initialState, RuntimeConfig(width, height, false, true))
+        let runtime = AppRuntime(root, initialState, RuntimeConfig.inline(width, height))
         let runner = createInteractiveRunner()
         runner.run(runtime, InteractiveRuntimeEventSource(RawStdinRuntimeEventSource(), SttyTerminalSizeReader(), 1000), StdoutFrameSink())
     }

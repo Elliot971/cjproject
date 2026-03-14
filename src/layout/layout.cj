@@ -2,7 +2,7 @@ package cjrxtui.layout
 
 import std.collection.ArrayList
 import cjrxtui.node.{Div, Node, RichText}
-import cjrxtui.style.{Alignment, AlignSelf, Border, Dimension, Direction, JustifyContent, Overflow, Spacing, TextStyle}
+import cjrxtui.style.{Alignment, AlignSelf, Border, Dimension, Direction, JustifyContent, Overflow, Spacing, TextStyle, TextWrap}
 
 public enum LayoutKind {
     | Empty
@@ -224,6 +224,24 @@ public class LayoutBox {
         }
         None
     }
+
+    public func collectFocusableNodeIds(): ArrayList<String> {
+        let result = ArrayList<String>()
+        collectFocusableNodeIdsInternal(result)
+        result
+    }
+
+    private func collectFocusableNodeIdsInternal(result: ArrayList<String>): Unit {
+        if (_focusable) {
+            match (_nodeId) {
+                case Some(id) => result.add(id)
+                case None => ()
+            }
+        }
+        for (child in _children) {
+            child.collectFocusableNodeIdsInternal(result)
+        }
+    }
 }
 
 public class LayoutEngine {
@@ -246,7 +264,7 @@ public class LayoutEngine {
     ): LayoutBox {
         match (node) {
             case Empty => emptyBox(x, y)
-            case TextNode(text) => textBox(text.content, text.style, x, y)
+            case TextNode(text) => textBox(text.content, text.style, x, y, availableWidth)
             case RichTextNode(richText) => richTextBox(richText, x, y)
             case DivNode(div) => layoutDiv(div, x, y, availableWidth, availableHeight)
         }
@@ -479,10 +497,23 @@ public class LayoutEngine {
         LayoutBox(LayoutKind.Empty, Rect(x, y, 0, 0), Rect(x, y, 0, 0))
     }
 
-    private func textBox(content: String, style: ?TextStyle, x: Int64, y: Int64): LayoutBox {
-        let size = measureText(content)
+    private func textBox(content: String, style: ?TextStyle, x: Int64, y: Int64, availableWidth: ?Int64): LayoutBox {
+        let wrapMode = match (style) {
+            case Some(s) => s.wrap
+            case None => TextWrap.NoWrap
+        }
+        let wrappedContent = match (availableWidth) {
+            case Some(w) => match (wrapMode) {
+                case Character => wrapText(content, w, wrapMode)
+                case Word => wrapText(content, w, wrapMode)
+                case WordBreak => wrapText(content, w, wrapMode)
+                case _ => content
+            }
+            case _ => content
+        }
+        let size = measureText(wrappedContent)
         let box = LayoutBox(LayoutKind.Text, Rect(x, y, size.width, size.height), Rect(x, y, size.width, size.height))
-        box.setTextContent(content)
+        box.setTextContent(wrappedContent)
         match (style) {
             case Some(value) => box.setTextStyle(value)
             case None => ()
@@ -512,6 +543,111 @@ public class LayoutEngine {
             content += span.content
         }
         content
+    }
+
+    private func wrapText(content: String, maxWidth: Int64, mode: TextWrap): String {
+        if (maxWidth <= 0) {
+            return content
+        }
+        var result = ""
+        let lines = content.split("\n", removeEmpty: false)
+        for (i in 0..lines.size) {
+            if (i > 0) {
+                result += "\n"
+            }
+            let line = lines[i]
+            let runes = line.toRuneArray()
+            if (Int64(runes.size) <= maxWidth) {
+                result += line
+                continue
+            }
+            match (mode) {
+                case Character =>
+                    var col = Int64(0)
+                    for (r in runes) {
+                        if (col >= maxWidth) {
+                            result += "\n"
+                            col = 0
+                        }
+                        result += r.toString()
+                        col += 1
+                    }
+                case Word =>
+                    var col = Int64(0)
+                    var wordBuf = ""
+                    var wordLen = Int64(0)
+                    for (r in runes) {
+                        if (r == r' ') {
+                            if (col + wordLen > maxWidth && col > 0) {
+                                result += "\n"
+                                col = 0
+                            }
+                            result += wordBuf
+                            col += wordLen
+                            wordBuf = ""
+                            wordLen = 0
+                            if (col < maxWidth) {
+                                result += " "
+                                col += 1
+                            }
+                        } else {
+                            wordBuf += r.toString()
+                            wordLen += 1
+                        }
+                    }
+                    if (wordLen > 0) {
+                        if (col + wordLen > maxWidth && col > 0) {
+                            result += "\n"
+                        }
+                        result += wordBuf
+                    }
+                case WordBreak =>
+                    var col = Int64(0)
+                    var wordBuf = ""
+                    var wordLen = Int64(0)
+                    for (r in runes) {
+                        if (r == r' ') {
+                            if (col + wordLen > maxWidth && col > 0) {
+                                result += "\n"
+                                col = 0
+                            }
+                            result += wordBuf
+                            col += wordLen
+                            wordBuf = ""
+                            wordLen = 0
+                            if (col < maxWidth) {
+                                result += " "
+                                col += 1
+                            }
+                        } else {
+                            wordBuf += r.toString()
+                            wordLen += 1
+                            if (wordLen >= maxWidth) {
+                                if (col > 0 && col + wordLen > maxWidth) {
+                                    result += "\n"
+                                    col = 0
+                                }
+                                result += wordBuf
+                                col += wordLen
+                                wordBuf = ""
+                                wordLen = 0
+                                if (col >= maxWidth) {
+                                    result += "\n"
+                                    col = 0
+                                }
+                            }
+                        }
+                    }
+                    if (wordLen > 0) {
+                        if (col + wordLen > maxWidth && col > 0) {
+                            result += "\n"
+                        }
+                        result += wordBuf
+                    }
+                case _ => result += line
+            }
+        }
+        result
     }
 
     private func measureText(content: String): Size {

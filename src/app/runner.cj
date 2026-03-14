@@ -528,7 +528,7 @@ public class StdoutFrameSink <: FrameSink {
     public init() {}
 
     public func write(frame: String): Unit {
-        getStdOut().write(frame)
+        getStdOut().write("\u{1b}[?2026h" + frame + "\u{1b}[?2026l")
         getStdOut().flush()
     }
 }

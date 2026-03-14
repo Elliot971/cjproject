@@ -11,6 +11,7 @@ public class TextAreaState <: State {
     public var cursorCol: Int64
     public var scrollRow: Int64
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         lines = ArrayList<String>()
@@ -19,6 +20,7 @@ public class TextAreaState <: State {
         cursorCol = 0
         scrollRow = 0
         focused = false
+        hovered = false
     }
 
     public init(text: String) {
@@ -30,6 +32,7 @@ public class TextAreaState <: State {
         cursorCol = 0
         scrollRow = 0
         focused = false
+        hovered = false
     }
 
     public func getText(): String {
@@ -71,7 +74,7 @@ public class TextArea <: Component {
             .focusable()
             .width(Dimension.Fixed(width))
             .height(Dimension.Fixed(height))
-            .style(textAreaContainerStyle(taState.focused))
+            .style(textAreaContainerStyle(taState.focused, hovered: taState.hovered))
 
         let viewportHeight = height
         let startRow = taState.scrollRow
@@ -100,6 +103,8 @@ private func applyTextAreaEvent(ctx: Context, state: TextAreaState, event: UiEve
     match (event) {
         case UiEvent.Focus(nodeId) => if (nodeId == id) { state.focused = true }
         case UiEvent.Blur(nodeId) => if (nodeId == id) { state.focused = false }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applyTextAreaKey(ctx, state, keyEvent, id, viewportHeight) }
         case _ => ()
     }
@@ -278,8 +283,8 @@ private func taPadOrTrim(text: String, width: Int64): String {
     result
 }
 
-private func textAreaContainerStyle(focused: Bool): Style {
-    let borderColor = if (focused) { Color.BrightGreen } else { Color.BrightBlack }
+private func textAreaContainerStyle(focused: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (focused) { Color.BrightGreen } else if (hovered) { Color.Green } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Single, borderColor)).withBackground(Color.Black)
 }
 

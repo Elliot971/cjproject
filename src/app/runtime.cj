@@ -2,7 +2,7 @@ package cjrxtui.app
 
 import std.collection.ArrayList
 import std.collection.concurrent.LinkedBlockingQueue
-import cjrxtui.component.{Action, Component, ComponentId, Context, Effect, EffectDispatcher, EffectSink, Message, MouseEvent, ResizeEvent, State, UiEvent}
+import cjrxtui.component.{Action, Component, ComponentId, Context, Effect, EffectDispatcher, EffectSink, KeyCode, KeyEvent, Message, MouseEvent, ResizeEvent, State, UiEvent}
 import cjrxtui.layout.{LayoutBox, LayoutEngine}
 import cjrxtui.render.FramePipeline
 import cjrxtui.terminal.TerminalRenderer
@@ -12,12 +12,16 @@ public struct RuntimeConfig {
     public let height: Int64
     public let clearScreenOnStart: Bool
     public let mouseCapture: Bool
+    public let globalKeyHandler: ?(KeyEvent) -> ?Action
+    public let inlineMode: Bool
 
     public init() {
         this.width = 80
         this.height = 24
         this.clearScreenOnStart = true
         this.mouseCapture = false
+        this.globalKeyHandler = None
+        this.inlineMode = false
     }
 
     public init(width: Int64, height: Int64, clearScreenOnStart: Bool) {
@@ -25,6 +29,8 @@ public struct RuntimeConfig {
         this.height = height
         this.clearScreenOnStart = clearScreenOnStart
         this.mouseCapture = false
+        this.globalKeyHandler = None
+        this.inlineMode = false
     }
 
     public init(width: Int64, height: Int64, clearScreenOnStart: Bool, mouseCapture: Bool) {
@@ -32,6 +38,30 @@ public struct RuntimeConfig {
         this.height = height
         this.clearScreenOnStart = clearScreenOnStart
         this.mouseCapture = mouseCapture
+        this.globalKeyHandler = None
+        this.inlineMode = false
+    }
+
+    public init(width: Int64, height: Int64, clearScreenOnStart: Bool, mouseCapture: Bool, globalKeyHandler: (KeyEvent) -> ?Action) {
+        this.width = width
+        this.height = height
+        this.clearScreenOnStart = clearScreenOnStart
+        this.mouseCapture = mouseCapture
+        this.globalKeyHandler = globalKeyHandler
+        this.inlineMode = false
+    }
+
+    public init(width: Int64, height: Int64, clearScreenOnStart: Bool, mouseCapture: Bool, inlineMode: Bool) {
+        this.width = width
+        this.height = height
+        this.clearScreenOnStart = clearScreenOnStart
+        this.mouseCapture = mouseCapture
+        this.globalKeyHandler = None
+        this.inlineMode = inlineMode
+    }
+
+    public static func inline(width: Int64, height: Int64): RuntimeConfig {
+        RuntimeConfig(width, height, false, false, true)
     }
 }
 
@@ -84,8 +114,11 @@ public class AppRuntime {
     private var height: Int64
     private let clearScreenOnStart: Bool
     private let mouseCapture: Bool
+    private let globalKeyHandler: ?(KeyEvent) -> ?Action
+    private let inlineMode: Bool
     private var entered: Bool = false
     private var focusedNodeId: ?String = None
+    private var hoveredNodeId: ?String = None
     private var latestLayout: ?LayoutBox = None
     private let asyncQueue = LinkedBlockingQueue<AsyncEnvelope>()
 
@@ -98,6 +131,8 @@ public class AppRuntime {
         this.height = config.height
         this.clearScreenOnStart = config.clearScreenOnStart
         this.mouseCapture = config.mouseCapture
+        this.globalKeyHandler = config.globalKeyHandler
+        this.inlineMode = config.inlineMode
         this.pipeline = FramePipeline(width, height)
         this.layoutEngine = LayoutEngine()
         this.terminalRenderer = TerminalRenderer()
@@ -111,6 +146,8 @@ public class AppRuntime {
         this.height = config.height
         this.clearScreenOnStart = config.clearScreenOnStart
         this.mouseCapture = config.mouseCapture
+        this.globalKeyHandler = config.globalKeyHandler
+        this.inlineMode = config.inlineMode
         this.pipeline = FramePipeline(width, height)
         this.layoutEngine = LayoutEngine()
         this.terminalRenderer = TerminalRenderer()
@@ -151,6 +188,15 @@ public class AppRuntime {
 
     public func enter(): String {
         entered = true
+        if (inlineMode) {
+            var reserveLines = ""
+            var i = Int64(0)
+            while (i < height) {
+                reserveLines += "\n"
+                i += 1
+            }
+            return terminalRenderer.hideCursorAnsi() + reserveLines + "\u{1b}[${height}A"
+        }
         let mouseCaptureAnsi = if (mouseCapture) { terminalRenderer.enableMouseCaptureAnsi() } else { "" }
         terminalRenderer.enterAlternateScreenAnsi() + terminalRenderer.hideCursorAnsi() + mouseCaptureAnsi
     }
@@ -164,6 +210,9 @@ public class AppRuntime {
     public func shutdownFrame(): String {
         entered = false
         terminalRenderer.resetState()
+        if (inlineMode) {
+            return terminalRenderer.resetAnsi() + "\u{1b}[${height}B\n" + terminalRenderer.showCursorAnsi()
+        }
         let mouseCaptureAnsi = if (mouseCapture) { terminalRenderer.disableMouseCaptureAnsi() } else { "" }
         terminalRenderer.resetAnsi() + mouseCaptureAnsi + terminalRenderer.showCursorAnsi() + terminalRenderer.leaveAlternateScreenAnsi()
     }
@@ -228,6 +277,26 @@ public class AppRuntime {
         match (event) {
             case UiEvent.Resize(resizeEvent) => resize(resizeEvent.width, resizeEvent.height)
             case UiEvent.Mouse(mouseEvent) => dispatchMouseEvent(mouseEvent)
+            case UiEvent.Key(keyEvent) =>
+                // Phase 1: Global key handler intercept
+                match (globalKeyHandler) {
+                    case Some(handler) =>
+                        match (handler(keyEvent)) {
+                            case Some(action) =>
+                                applyAction(action)
+                                if (!running) {
+                                    return RuntimeStepResult("", true)
+                                }
+                            case None => ()
+                        }
+                    case None => ()
+                }
+                // Phase 2: Normal key routing
+                match (keyEvent.code) {
+                    case KeyCode.Tab => cycleFocus(1); step(event)
+                    case KeyCode.BackTab => cycleFocus(-1); step(event)
+                    case _ => step(event)
+                }
             case _ => step(event)
         }
     }
@@ -282,6 +351,7 @@ public class AppRuntime {
             case Down(_) => routePointerDown(mouseEvent)
             case ScrollUp => routePointerFocus(mouseEvent)
             case ScrollDown => routePointerFocus(mouseEvent)
+            case Move => routePointerHover(mouseEvent)
             case _ => ()
         }
     }
@@ -328,6 +398,70 @@ public class AppRuntime {
             case Some(current) =>
                 focusedNodeId = None
                 processMessage(UiEvent.Blur(current))
+            case None => ()
+        }
+    }
+
+    private func cycleFocus(direction: Int64): Unit {
+        let focusableIds = match (latestLayout) {
+            case Some(layout) => layout.collectFocusableNodeIds()
+            case None => return
+        }
+        if (focusableIds.isEmpty()) {
+            return
+        }
+        let count = Int64(focusableIds.size)
+
+        // Find current index
+        var currentIndex: Int64 = -1
+        match (focusedNodeId) {
+            case Some(current) =>
+                var i: Int64 = 0
+                while (i < count) {
+                    if (focusableIds[i] == current) {
+                        currentIndex = i
+                        break
+                    }
+                    i += 1
+                }
+            case None => ()
+        }
+
+        // Calculate next index with wrapping
+        let nextIndex = if (currentIndex < 0) {
+            if (direction > 0) { Int64(0) } else { count - 1 }
+        } else {
+            ((currentIndex + direction) % count + count) % count
+        }
+
+        updateFocus(focusableIds[nextIndex])
+    }
+
+    private func routePointerHover(mouseEvent: MouseEvent): Unit {
+        match (findFocusableNodeIdAt(mouseEvent.x, mouseEvent.y)) {
+            case Some(nodeId) => updateHover(nodeId)
+            case None => clearHover()
+        }
+    }
+
+    private func updateHover(nodeId: String): Unit {
+        match (hoveredNodeId) {
+            case Some(current) =>
+                if (current == nodeId) {
+                    return
+                }
+                processMessage(UiEvent.HoverLeave(current))
+            case None => ()
+        }
+        hoveredNodeId = nodeId
+        processMessage(UiEvent.HoverEnter(nodeId))
+    }
+
+    private func clearHover(): Unit {
+        match (hoveredNodeId) {
+            case Some(current) =>
+                hoveredNodeId = None
+                processMessage(UiEvent.HoverLeave(current))
             case None => ()
         }
     }

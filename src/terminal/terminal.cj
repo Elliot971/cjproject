@@ -204,6 +204,14 @@ public class TerminalRenderer {
         esc("[?1006l") + esc("[?1003l")
     }
 
+    public func beginSynchronizedOutputAnsi(): String {
+        esc("[?2026h")
+    }
+
+    public func endSynchronizedOutputAnsi(): String {
+        esc("[?2026l")
+    }
+
     public func resetAnsi(): String {
         esc("[0m")
     }
@@ -211,10 +219,43 @@ public class TerminalRenderer {
     public func buildCommands(updates: Array<CellUpdate>): Array<TerminalCommand> {
         let commands = ArrayList<TerminalCommand>()
 
+        var runText = ""
+        var runFg: ?Color = None
+        var runBg: ?Color = None
+        var runStyle = CellStyle()
+        var inRun = false
+
         for (update in updates) {
             match (update) {
-                case CellUpdate.Single(x, y, cell) => appendCommandsForCell(commands, x, y, cell)
+                case CellUpdate.Single(x, y, cell) =>
+                    let canMerge = inRun && isCursorAt(x, y) && sameOptionalColor(runFg, cell.foreground) && sameOptionalColor(runBg, cell.background) && sameStyle(runStyle, cell.style)
+                    if (canMerge) {
+                        runText += cell.rune.toString()
+                        _cursorX = x + 1
+                    } else {
+                        if (inRun && !runText.isEmpty()) {
+                            commands.add(TerminalCommand.Print(runText))
+                        }
+                        if (!isCursorAt(x, y)) {
+                            commands.add(TerminalCommand.MoveTo(x, y))
+                            _cursorX = x
+                            _cursorY = y
+                        }
+                        appendColorCommands(commands, cell)
+                        appendStyleCommands(commands, cell.style)
+                        runText = cell.rune.toString()
+                        runFg = cell.foreground
+                        runBg = cell.background
+                        runStyle = cell.style
+                        inRun = true
+                        _cursorX = x + 1
+                        _cursorY = y
+                    }
             }
+        }
+
+        if (inRun && !runText.isEmpty()) {
+            commands.add(TerminalCommand.Print(runText))
         }
 
         return Array<TerminalCommand>(commands.size, { index => commands[index] })
@@ -222,9 +263,18 @@ public class TerminalRenderer {
 
     public func renderToAnsi(updates: Array<CellUpdate>): String {
         let commands = buildCommands(updates)
-        var output = ""
+        if (commands.isEmpty()) {
+            return ""
+        }
+        let parts = ArrayList<String>()
+        parts.add(beginSynchronizedOutputAnsi())
         for (command in commands) {
-            output += toAnsi(command)
+            parts.add(toAnsi(command))
+        }
+        parts.add(endSynchronizedOutputAnsi())
+        var output = ""
+        for (part in parts) {
+            output += part
         }
         output
     }
@@ -235,20 +285,6 @@ public class TerminalRenderer {
         _foreground = None
         _background = None
         _style = CellStyle()
-    }
-
-    private func appendCommandsForCell(commands: ArrayList<TerminalCommand>, x: Int64, y: Int64, cell: Cell): Unit {
-        if (!isCursorAt(x, y)) {
-            commands.add(TerminalCommand.MoveTo(x, y))
-            _cursorX = x
-            _cursorY = y
-        }
-
-        appendColorCommands(commands, cell)
-        appendStyleCommands(commands, cell.style)
-        commands.add(TerminalCommand.Print(cell.rune.toString()))
-        _cursorX = x + 1
-        _cursorY = y
     }
 
     private func appendColorCommands(commands: ArrayList<TerminalCommand>, cell: Cell): Unit {

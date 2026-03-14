@@ -9,12 +9,14 @@ public class SelectState <: State {
     public var open: Bool
     public var highlightIndex: Int64
     public var focused: Bool
+    public var hovered: Bool
 
     public init() {
         selectedIndex = 0
         open = false
         highlightIndex = 0
         focused = false
+        hovered = false
     }
 
     public init(selectedIndex: Int64) {
@@ -22,6 +24,7 @@ public class SelectState <: State {
         this.open = false
         this.highlightIndex = selectedIndex
         this.focused = false
+        this.hovered = false
     }
 }
 
@@ -68,7 +71,7 @@ public class Select <: Component {
             .focusable()
             .width(Dimension.Fixed(width))
             .height(Dimension.Fixed(displayHeight))
-            .style(selectContainerStyle(selectState.focused, selectState.open))
+            .style(selectContainerStyle(selectState.focused, selectState.open, hovered: selectState.hovered))
 
         let selectedLabel = if (selectState.selectedIndex >= 0 && selectState.selectedIndex < options.size) {
             options[selectState.selectedIndex]
@@ -104,6 +107,8 @@ private func applySelectEvent(ctx: Context, state: SelectState, event: UiEvent, 
             state.focused = false
             state.open = false
         }
+        case UiEvent.HoverEnter(nodeId) => if (nodeId == id) { state.hovered = true }
+        case UiEvent.HoverLeave(nodeId) => if (nodeId == id) { state.hovered = false }
         case UiEvent.Key(keyEvent) => if (state.focused) { applySelectKey(ctx, state, keyEvent.code, id, options) }
         case _ => ()
     }
@@ -154,8 +159,8 @@ private func selectScrollStart(highlight: Int64, total: Int64, visible: Int64): 
     start
 }
 
-private func selectContainerStyle(focused: Bool, open: Bool): Style {
-    let borderColor = if (open) { Color.BrightYellow } else if (focused) { Color.BrightCyan } else { Color.BrightBlack }
+private func selectContainerStyle(focused: Bool, open: Bool, hovered!: Bool = false): Style {
+    let borderColor = if (open) { Color.BrightYellow } else if (focused) { Color.BrightCyan } else if (hovered) { Color.Cyan } else { Color.BrightBlack }
     Style().withBorder(Border(BorderStyle.Rounded, borderColor)).withBackground(Color.Black)
 }
 
